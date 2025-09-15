@@ -6,6 +6,7 @@ export interface User {
   username: string;
   email?: string;
   role: UserRole;
+  enabled?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -15,11 +16,17 @@ export interface LoginRequest {
   password: string;
 }
 
-export interface LoginResponse {
+export interface LoginData {
   token: string;
   user: User;
-  message: string;
+}
+
+export interface LoginResponse {
   success: boolean;
+  message: string;
+  data: LoginData;
+  error: string | null;
+  timestamp: string;
 }
 
 export interface RegisterRequest {

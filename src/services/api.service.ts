@@ -9,6 +9,13 @@ import {
   OrderStatus, DeliveryStatus
 } from '@/types';
 
+// Global error handler for authentication errors
+let authErrorHandler: (() => void) | null = null;
+
+export const setAuthErrorHandler = (handler: () => void) => {
+  authErrorHandler = handler;
+};
+
 class ApiService {
   private api: AxiosInstance;
   private baseURL: string;
@@ -37,16 +44,27 @@ class ApiService {
       (response) => response,
       (error: AxiosError<ApiResponse>) => {
         if (error.response?.status === 401) {
-          // Token expired or invalid
+          // Token expired or invalid - handle without page refresh
           Cookies.remove('jwt-token');
-          window.location.href = '/login';
-          toast.error('Session expired. Please login again.');
+          if (authErrorHandler) {
+            authErrorHandler();
+          }
+          // Don't show toast here for login failures, let the login component handle it
+          if (!error.config?.url?.includes('/auth/login')) {
+            toast.error('Session expired. Please login again.');
+          }
         } else if (error.response?.status === 403) {
           toast.error('You do not have permission to perform this action.');
         } else if (error.response?.data?.error) {
-          toast.error(error.response.data.error);
+          // Don't show generic error toast for login failures
+          if (!error.config?.url?.includes('/auth/login')) {
+            toast.error(error.response.data.error);
+          }
         } else {
-          toast.error('An unexpected error occurred.');
+          // Don't show generic error toast for login failures
+          if (!error.config?.url?.includes('/auth/login')) {
+            toast.error('An unexpected error occurred.');
+          }
         }
         return Promise.reject(error);
       }
@@ -69,10 +87,10 @@ class ApiService {
     return response.data;
   }
 
-  // User Management APIs
+  // User APIs
   async getUsers(filter?: UserFilter): Promise<User[]> {
-    const response = await this.api.get<User[]>('/users', { params: filter });
-    return response.data;
+    const response = await this.api.get<ApiResponse<User[]>>('/users', { params: filter });
+    return response.data.data || [];
   }
 
   async getUserById(id: number): Promise<User> {
@@ -97,10 +115,10 @@ class ApiService {
     toast.success('User deleted successfully');
   }
 
-  // Category Management APIs
+  // Category APIs
   async getCategories(): Promise<Category[]> {
-    const response = await this.api.get<Category[]>('/categories');
-    return response.data;
+    const response = await this.api.get<ApiResponse<Category[]>>('/categories');
+    return response.data.data || [];
   }
 
   async getCategoryById(id: number): Promise<Category> {
@@ -125,10 +143,10 @@ class ApiService {
     toast.success('Category deleted successfully');
   }
 
-  // Product Management APIs
+  // Product APIs
   async getProducts(filter?: ProductFilter): Promise<Product[]> {
-    const response = await this.api.get<Product[]>('/products', { params: filter });
-    return response.data;
+    const response = await this.api.get<ApiResponse<Product[]>>('/products', { params: filter });
+    return response.data.data || [];
   }
 
   async getProductById(id: number): Promise<Product> {
@@ -153,10 +171,10 @@ class ApiService {
     toast.success('Product deleted successfully');
   }
 
-  // Order Management APIs
+  // Order APIs
   async getOrders(filter?: OrderFilter): Promise<Order[]> {
-    const response = await this.api.get<Order[]>('/orders', { params: filter });
-    return response.data;
+    const response = await this.api.get<ApiResponse<Order[]>>('/orders', { params: filter });
+    return response.data.data || [];
   }
 
   async getOrderById(id: number): Promise<Order> {
@@ -177,14 +195,14 @@ class ApiService {
   }
 
   async getKitchenOrders(): Promise<Order[]> {
-    const response = await this.api.get<Order[]>('/orders/kitchen');
-    return response.data;
+    const response = await this.api.get<ApiResponse<Order[]>>('/orders/kitchen');
+    return response.data.data || [];
   }
 
-  // Delivery Management APIs
+  // Delivery APIs
   async getDeliveries(filter?: DeliveryFilter): Promise<Delivery[]> {
-    const response = await this.api.get<Delivery[]>('/deliveries', { params: filter });
-    return response.data;
+    const response = await this.api.get<ApiResponse<Delivery[]>>('/deliveries', { params: filter });
+    return response.data.data || [];
   }
 
   async assignDelivery(orderId: number, deliveryStaffId: number): Promise<Delivery> {
@@ -203,8 +221,8 @@ class ApiService {
   }
 
   async getMyDeliveries(): Promise<Delivery[]> {
-    const response = await this.api.get<Delivery[]>('/deliveries/my');
-    return response.data;
+    const response = await this.api.get<ApiResponse<Delivery[]>>('/deliveries/my');
+    return response.data.data || [];
   }
 
   // Dashboard Statistics

@@ -37,10 +37,10 @@ export default function LoginPage() {
 
   const handleDemoLogin = async (role: string) => {
     const demoCredentials = {
-      admin: { username: 'admin', password: 'admin123' },
-      manager: { username: 'manager', password: 'manager123' },
-      kitchen: { username: 'kitchen', password: 'kitchen123' },
-      delivery: { username: 'delivery', password: 'delivery123' },
+      admin: { username: 'admin', password: 'password123' },
+      manager: { username: 'manager', password: 'password123' },
+      kitchen: { username: 'kitchen', password: 'password123' },
+      delivery: { username: 'delivery', password: 'password123' },
     };
 
     const creds = demoCredentials[role as keyof typeof demoCredentials];

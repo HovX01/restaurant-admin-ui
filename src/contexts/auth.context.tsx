@@ -46,16 +46,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       const response = await apiService.login(data);
       
-      if (response.success) {
-        setAuth(response.token, response.user);
+      if (response.success && response.data) {
+        setAuth(response.data.token, response.data.user);
         
         // Connect WebSocket
-        websocketService.connect(response.token, response.user.id, response.user.role);
+        websocketService.connect(response.data.token, response.data.user.id, response.data.user.role);
         
         toast.success('Login successful!');
         router.push('/dashboard');
       } else {
-        toast.error(response.message || 'Login failed');
+        toast.error(response.message || response.error || 'Login failed');
       }
     } catch (error) {
       const err = error as Error;
