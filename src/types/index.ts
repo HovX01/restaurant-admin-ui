@@ -71,6 +71,7 @@ export interface OrderItem {
   id?: number;
   productId: number;
   product?: Product;
+  productName?: string;
   quantity: number;
   price: number;
   subtotal?: number;
@@ -82,8 +83,10 @@ export interface Order {
   customerName: string;
   customerPhone?: string;
   customerAddress?: string;
-  items: OrderItem[];
-  totalAmount: number;
+  deliveryAddress?: string;
+  assignedDriverName?: string;
+  items?: OrderItem[];
+  totalAmount?: number;
   status: OrderStatus;
   notes?: string;
   createdBy?: User;
@@ -104,6 +107,16 @@ export interface Delivery {
   assignedAt?: string;
   deliveredAt?: string;
   notes?: string;
+}
+
+export interface DeliveryDriver {
+  id: number;
+  name: string;
+  phone: string;
+  email: string;
+  status: 'AVAILABLE' | 'BUSY' | 'OFFLINE';
+  currentDeliveries: number;
+  totalDeliveries: number;
 }
 
 // WebSocket Types
@@ -142,7 +155,53 @@ export interface PaginatedResponse<T> {
   number: number;
 }
 
-// Filter Types
+// Settings Types
+export interface RestaurantSettings {
+  name: string;
+  description: string;
+  address: string;
+  phone: string;
+  email: string;
+  website: string;
+  logo: string;
+  currency: string;
+  timezone: string;
+  taxRate: number;
+  deliveryFee: number;
+  minimumOrderAmount: number;
+}
+
+export interface NotificationSettings {
+  emailNotifications: boolean;
+  smsNotifications: boolean;
+  pushNotifications: boolean;
+  orderNotifications: boolean;
+  deliveryNotifications: boolean;
+  lowStockNotifications: boolean;
+  customerNotifications: boolean;
+}
+
+export interface OperationalSettings {
+  preparationTime: number;
+  deliveryTime: number;
+  openingHours: {
+    [key: string]: { open: string; close: string; closed: boolean };
+  };
+  maxDeliveryDistance: number;
+  allowPreOrders: boolean;
+  preOrderDays: number;
+  autoAcceptOrders: boolean;
+}
+
+export interface PaymentSettings {
+  acceptCash: boolean;
+  acceptCard: boolean;
+  acceptOnline: boolean;
+  stripeEnabled: boolean;
+  paypalEnabled: boolean;
+  stripePublicKey: string;
+  paypalClientId: string;
+}
 export interface UserFilter {
   role?: UserRole;
   search?: string;

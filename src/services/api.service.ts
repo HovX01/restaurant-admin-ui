@@ -2,7 +2,7 @@ import axios, { AxiosInstance, AxiosError } from 'axios';
 import Cookies from 'js-cookie';
 import { toast } from 'sonner';
 import { 
-  User, Category, Product, Order, Delivery,
+  User, Category, Product, Order, Delivery, DeliveryDriver,
   LoginRequest, LoginResponse, RegisterRequest, ChangePasswordRequest,
   ApiResponse,
   UserFilter, ProductFilter, OrderFilter, DeliveryFilter,
@@ -194,11 +194,6 @@ class ApiService {
     return response.data;
   }
 
-  async getKitchenOrders(): Promise<Order[]> {
-    const response = await this.api.get<ApiResponse<Order[]>>('/orders/kitchen');
-    return response.data.data || [];
-  }
-
   // Delivery APIs
   async getDeliveries(filter?: DeliveryFilter): Promise<Delivery[]> {
     const response = await this.api.get<ApiResponse<Delivery[]>>('/deliveries', { params: filter });
@@ -225,10 +220,80 @@ class ApiService {
     return response.data.data || [];
   }
 
+  // Additional Order APIs for Kitchen and Delivery
+  async getKitchenOrders(): Promise<Order[]> {
+    const response = await this.api.get<ApiResponse<Order[]>>('/orders/kitchen');
+    return response.data.data || [];
+  }
+
+  async getDeliveryOrders(): Promise<Order[]> {
+    const response = await this.api.get<ApiResponse<Order[]>>('/orders/delivery');
+    return response.data.data || [];
+  }
+
+  async assignDeliveryDriver(orderId: number, driverId: number, notes?: string): Promise<Order> {
+    const response = await this.api.post<Order>(`/orders/${orderId}/assign-driver`, {
+      driverId,
+      notes
+    });
+    toast.success('Driver assigned successfully');
+    return response.data;
+  }
+
+  // Delivery Driver APIs
+  async getDeliveryDrivers(): Promise<DeliveryDriver[]> {
+    const response = await this.api.get<ApiResponse<DeliveryDriver[]>>('/delivery-drivers');
+    return response.data.data || [];
+  }
+
   // Dashboard Statistics
   async getDashboardStats(): Promise<unknown> {
     const response = await this.api.get('/dashboard/stats');
     return response.data;
+  }
+
+  // Analytics APIs
+  async getAnalyticsData(dateRange: Record<string, unknown>): Promise<unknown> {
+    const response = await this.api.get('/analytics/data', { params: dateRange });
+    return response.data;
+  }
+
+  async exportAnalyticsData(period: string, startDate: Date | null, endDate: Date | null): Promise<void> {
+    const params: Record<string, string> = { period };
+    if (startDate) params.startDate = startDate.toISOString();
+    if (endDate) params.endDate = endDate.toISOString();
+    
+    const response = await this.api.get('/analytics/export', {
+      params,
+      responseType: 'blob'
+    });
+    
+    // Create download link
+    const blob = new Blob([response.data]);
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `analytics-${period}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  }
+
+  // Settings APIs
+  async getSettings(): Promise<{
+    restaurant?: unknown;
+    notifications?: unknown;
+    operational?: unknown;
+    payment?: unknown;
+  }> {
+    const response = await this.api.get('/settings');
+    return response.data;
+  }
+
+  async updateSettings(section: string, data: Record<string, unknown>): Promise<void> {
+    await this.api.put(`/settings/${section}`, data);
+    toast.success(`${section} settings updated successfully`);
   }
 }
 

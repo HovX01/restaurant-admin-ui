@@ -88,10 +88,10 @@ export default function DashboardPage() {
         activeDeliveries: orders.filter(o => o.status === 'OUT_FOR_DELIVERY').length,
         todayRevenue: orders
           .filter(o => isToday(new Date(o.createdAt || '')))
-          .reduce((sum, o) => sum + o.totalAmount, 0),
+          .reduce((sum, o) => sum + (o.totalAmount || 0), 0),
         monthlyRevenue: orders
           .filter(o => isThisMonth(new Date(o.createdAt || '')))
-          .reduce((sum, o) => sum + o.totalAmount, 0),
+          .reduce((sum, o) => sum + (o.totalAmount || 0), 0),
         growthRate: 12.5, // This would be calculated from historical data
       });
     } catch (error) {
@@ -272,7 +272,7 @@ export default function DashboardPage() {
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-medium">${order.totalAmount.toFixed(2)}</p>
+                        <p className="text-sm font-medium">${(order.totalAmount || 0).toFixed(2)}</p>
                         <Badge variant={getStatusColor(order.status) as 'default' | 'secondary' | 'destructive' | 'outline'}>
                           {order.status}
                         </Badge>
