@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/auth.store';
-import { apiService } from '@/services/api.service';
+import { apiService, setAuthErrorHandler, setUnauthorizedHandler } from '@/services/api.service';
 import { websocketService } from '@/services/websocket.service';
 import { LoginRequest, RegisterRequest, User, UserRole } from '@/types';
 
@@ -26,7 +26,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, setAuth, logout: storeLogout, hasRole, isTokenValid } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
 
+  const handleLogout = () => {
+    websocketService.disconnect();
+    storeLogout();
+    router.push('/login');
+    toast.info('You have been logged out');
+  };
+
+  const handleUnauthorized = () => {
+    router.push('/unauthorized');
+  };
+
   useEffect(() => {
+    // Set up global error handlers
+    setAuthErrorHandler(handleLogout);
+    setUnauthorizedHandler(handleUnauthorized);
+
     // Check token validity on mount
     if (isAuthenticated && !isTokenValid()) {
       handleLogout();
@@ -82,13 +97,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleLogout = () => {
-    websocketService.disconnect();
-    storeLogout();
-    router.push('/login');
-    toast.info('You have been logged out');
   };
 
   const canAccess = (requiredRoles: UserRole[]) => {

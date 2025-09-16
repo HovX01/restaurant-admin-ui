@@ -72,18 +72,22 @@ export default function DashboardPage() {
       setIsLoading(true);
       
       // Load dashboard stats (you might want to create a specific endpoint for this)
-      const [orders, products, users] = await Promise.all([
-        apiService.getOrders({ status: 'PENDING' as OrderStatus }),
-        apiService.getProducts(),
-        apiService.getUsers(),
+      const [ordersResponse, productsResponse, usersResponse] = await Promise.all([
+        apiService.getOrders({ status: 'PENDING' as OrderStatus, page: 0, size: 20 }),
+        apiService.getProducts({ page: 0, size: 20 }),
+        apiService.getUsers({ page: 0, size: 20 }),
       ]);
+
+      const orders = ordersResponse.data.content;
+      const products = productsResponse.data.content;
+      const users = usersResponse.data.content;
 
       setRecentOrders(orders.slice(0, 5));
       
       setStats({
-        totalUsers: users.length,
-        totalProducts: products.length,
-        totalOrders: orders.length,
+        totalUsers: usersResponse.data.totalElements,
+        totalProducts: productsResponse.data.totalElements,
+        totalOrders: ordersResponse.data.totalElements,
         pendingOrders: orders.filter(o => o.status === 'PENDING').length,
         activeDeliveries: orders.filter(o => o.status === 'OUT_FOR_DELIVERY').length,
         todayRevenue: orders

@@ -150,7 +150,8 @@ export default function SettingsPage() {
   const loadSettings = async () => {
     try {
       setLoading(true);
-      const data = await apiService.getSettings();
+      const response = await apiService.getSettings();
+      const data = response.data;
       
       if (data.restaurant) setRestaurantSettings(data.restaurant as RestaurantSettings);
       if (data.notifications) setNotificationSettings(data.notifications as NotificationSettings);
@@ -167,7 +168,7 @@ export default function SettingsPage() {
   const saveSettings = async (section: string, data: Record<string, unknown>) => {
     try {
       setSaving(true);
-      await apiService.updateSettings(section, data);
+      await apiService.updateSettings({ [section]: data });
       toast.success(`${section} settings updated successfully`);
     } catch (error) {
       console.error('Failed to save settings:', error);

@@ -43,7 +43,8 @@ export default function KitchenPage() {
     try {
       setLoading(true);
       // Get orders that are in kitchen workflow states
-      const data = await apiService.getKitchenOrders();
+      const response = await apiService.getKitchenOrders({ page: 0, size: 100 });
+      const data = response.data.content;
       const filteredOrders = data.filter(order => 
         ['CONFIRMED', 'PREPARING', 'READY'].includes(order.status)
       );
@@ -57,7 +58,8 @@ export default function KitchenPage() {
 
   const loadProducts = async () => {
     try {
-      const data = await apiService.getProducts();
+      const response = await apiService.getProducts({ page: 0, size: 100 });
+      const data = response.data.content;
       setProducts(data);
     } catch (error) {
       console.error('Failed to load products:', error);

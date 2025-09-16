@@ -7,6 +7,9 @@ export interface User {
   email?: string;
   role: UserRole;
   enabled?: boolean;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -80,10 +83,14 @@ export interface OrderItem {
 export interface Order {
   id: number;
   orderNumber?: string;
+  customerId?: number;
+  customer?: User;
   customerName: string;
   customerPhone?: string;
   customerAddress?: string;
   deliveryAddress?: string;
+  assignedDriverId?: number;
+  assignedDriver?: User;
   assignedDriverName?: string;
   items?: OrderItem[];
   totalAmount?: number;
@@ -101,12 +108,17 @@ export interface Delivery {
   id: number;
   orderId: number;
   order?: Order;
-  deliveryStaffId: number;
-  deliveryStaff?: User;
+  driverId: number;
+  driver?: User;
+  deliveryStaffId?: number; // Legacy field for backward compatibility
+  deliveryStaff?: User; // Legacy field for backward compatibility
   status: DeliveryStatus;
   assignedAt?: string;
+  pickedUpAt?: string;
   deliveredAt?: string;
   notes?: string;
+  estimatedDeliveryTime?: string;
+  actualDeliveryTime?: string;
 }
 
 export interface DeliveryDriver {
@@ -139,20 +151,34 @@ export interface WebSocketMessage {
   timestamp: string;
 }
 
-// API Response Types
+// API Response Types (matching ApiResponseDTO from documentation)
 export interface ApiResponse<T = unknown> {
   success: boolean;
-  message?: string;
-  data?: T;
-  error?: string;
+  message: string;
+  data: T;
+  error: string | null;
+  timestamp: string;
+}
+
+// Standardized Pagination Types
+export interface PaginatedData<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+  hasNext: boolean;
+  hasPrevious: boolean;
 }
 
 export interface PaginatedResponse<T> {
-  content: T[];
-  totalElements: number;
-  totalPages: number;
-  size: number;
-  number: number;
+  success: boolean;
+  message: string;
+  data: PaginatedData<T>;
+  error: string | null;
+  timestamp: string;
 }
 
 // Settings Types

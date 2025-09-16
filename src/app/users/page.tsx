@@ -83,7 +83,8 @@ export default function UsersPage() {
 
   const loadUsers = async () => {
     try {
-      const data = await apiService.getUsers();
+      const response = await apiService.getUsers({ page: 0, size: 100 });
+      const data = response.data.content;
       setUsers(data);
     } catch (error) {
       console.error('Failed to load users:', error);

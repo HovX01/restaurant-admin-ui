@@ -99,10 +99,12 @@ export default function OrdersPage() {
   const loadData = async () => {
     try {
 
-      const [ordersData, productsData] = await Promise.all([
-        apiService.getOrders(),
-        apiService.getProducts(),
+      const [ordersResponse, productsResponse] = await Promise.all([
+        apiService.getOrders({ page: 0, size: 100 }),
+        apiService.getProducts({ page: 0, size: 100 }),
       ]);
+      const ordersData = ordersResponse.data.content;
+      const productsData = productsResponse.data.content;
       setOrders(ordersData);
       setProducts(productsData);
     } catch (error) {
@@ -222,7 +224,7 @@ export default function OrdersPage() {
       header: 'Total',
       cell: ({ row }) => {
         const amount = row.getValue('totalAmount') as number;
-        return `$${amount.toFixed(2)}`;
+        return `$${amount ? amount.toFixed(2) : 'N/A'}`;
       },
     },
     {

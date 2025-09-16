@@ -37,7 +37,7 @@ import { ColumnDef } from '@tanstack/react-table';
 
 export default function DeliveriesPage() {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [drivers, setDrivers] = useState<DeliveryDriver[]>([]);
+  const [drivers, setDrivers] = useState<UserType[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -60,7 +60,8 @@ export default function DeliveriesPage() {
   const loadDeliveryOrders = async () => {
     try {
       setLoading(true);
-      const data = await apiService.getDeliveryOrders();
+      const response = await apiService.getDeliveryOrders({ page: 0, size: 100 });
+      const data = response.data.content;
       setOrders(data);
     } catch (error) {
       console.error('Failed to load delivery orders:', error);
@@ -71,7 +72,8 @@ export default function DeliveriesPage() {
 
   const loadDrivers = async () => {
     try {
-      const data = await apiService.getDeliveryDrivers();
+      const response = await apiService.getDeliveryDrivers({ page: 0, size: 100 });
+      const data = response.data.content;
       setDrivers(data);
     } catch (error) {
       console.error('Failed to load drivers:', error);
@@ -159,23 +161,12 @@ export default function DeliveriesPage() {
     }
   };
 
-  const getDriverStatusColor = (status: DeliveryDriver['status']) => {
-    switch (status) {
-      case 'AVAILABLE':
-        return 'default';
-      case 'BUSY':
-        return 'secondary';
-      case 'OFFLINE':
-        return 'destructive';
-      default:
-        return 'secondary';
-    }
-  };
+
 
   const readyOrders = orders.filter(o => o.status === 'READY');
   const outForDeliveryOrders = orders.filter(o => o.status === 'OUT_FOR_DELIVERY');
   const deliveredOrders = orders.filter(o => o.status === 'DELIVERED');
-  const availableDrivers = drivers.filter(d => d.status === 'AVAILABLE');
+  const availableDrivers = drivers.filter(d => d.enabled);
 
   const deliveryColumns: ColumnDef<Order>[] = [
     {
@@ -383,10 +374,10 @@ export default function DeliveriesPage() {
                       <div className="flex items-center justify-between">
                         <CardTitle className="flex items-center gap-2">
                           <User className="h-5 w-5" />
-                          {driver.name}
+                          {driver.firstName && driver.lastName ? `${driver.firstName} ${driver.lastName}` : driver.username}
                         </CardTitle>
-                        <Badge variant={getDriverStatusColor(driver.status)}>
-                          {driver.status}
+                        <Badge variant={driver.enabled ? 'default' : 'secondary'}>
+                          {driver.enabled ? 'Available' : 'Unavailable'}
                         </Badge>
                       </div>
                     </CardHeader>
@@ -398,11 +389,11 @@ export default function DeliveriesPage() {
                         </div>
                         <div className="flex justify-between text-sm">
                           <span>Current deliveries:</span>
-                          <span className="font-medium">{driver.currentDeliveries}</span>
+                          <span className="font-medium">0</span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span>Total deliveries:</span>
-                          <span className="font-medium">{driver.totalDeliveries}</span>
+                          <span className="font-medium">0</span>
                         </div>
                       </div>
                     </CardContent>
@@ -447,9 +438,9 @@ export default function DeliveriesPage() {
                       {availableDrivers.map((driver) => (
                         <SelectItem key={driver.id} value={driver.id.toString()}>
                           <div className="flex items-center gap-2">
-                            {driver.name} - {driver.phone}
+                            {driver.firstName && driver.lastName ? `${driver.firstName} ${driver.lastName}` : driver.username} - {driver.phone || 'No phone'}
                             <Badge variant="outline" className="ml-2">
-                              {driver.currentDeliveries} active
+                              0 active
                             </Badge>
                           </div>
                         </SelectItem>

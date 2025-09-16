@@ -97,7 +97,7 @@ export default function AnalyticsPage() {
       }
 
       const response = await apiService.getAnalyticsData(dateRange);
-      setData(response as AnalyticsData);
+      setData(response.data as AnalyticsData);
     } catch (error) {
       console.error('Failed to load analytics data:', error);
       toast.error('Failed to load analytics data');
@@ -108,7 +108,11 @@ export default function AnalyticsPage() {
 
   const handleExport = async () => {
     try {
-      await apiService.exportAnalyticsData(period, startDate, endDate);
+      await apiService.exportAnalyticsData('csv', {
+        startDate: startDate ? format(startDate, 'yyyy-MM-dd') : undefined,
+        endDate: endDate ? format(endDate, 'yyyy-MM-dd') : undefined,
+        type: period
+      });
       toast.success('Analytics data exported successfully');
     } catch (error) {
       console.error('Failed to export analytics:', error);

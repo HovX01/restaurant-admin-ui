@@ -21,6 +21,10 @@ import {
   Settings,
   BarChart,
   Tag,
+  TrendingUp,
+  Archive,
+  UserCheck,
+  Bell,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -36,11 +40,18 @@ const menuItems: MenuItem[] = [
     title: 'Dashboard',
     href: '/dashboard',
     icon: Home,
+    roles: ['ADMIN', 'MANAGER', 'KITCHEN_STAFF', 'DELIVERY_STAFF']
   },
   {
-    title: 'Users',
-    href: '/users',
-    icon: Users,
+    title: 'Orders',
+    href: '/orders',
+    icon: ShoppingCart,
+    roles: ['ADMIN', 'MANAGER', 'KITCHEN_STAFF'],
+  },
+  {
+    title: 'Products',
+    href: '/products',
+    icon: Package,
     roles: ['ADMIN', 'MANAGER'],
   },
   {
@@ -50,39 +61,22 @@ const menuItems: MenuItem[] = [
     roles: ['ADMIN', 'MANAGER'],
   },
   {
-    title: 'Products',
-    href: '/products',
-    icon: Package,
-    roles: ['ADMIN', 'MANAGER'],
-  },
-  {
-    title: 'Orders',
-    href: '/orders',
-    icon: ShoppingCart,
-    roles: ['ADMIN', 'MANAGER', 'KITCHEN_STAFF'],
-  },
-  {
-    title: 'Kitchen',
-    href: '/kitchen',
-    icon: ChefHat,
-    roles: ['ADMIN', 'MANAGER', 'KITCHEN_STAFF'],
-  },
-  {
     title: 'Deliveries',
     href: '/deliveries',
     icon: Truck,
     roles: ['ADMIN', 'MANAGER', 'DELIVERY_STAFF'],
   },
   {
+    title: 'Users',
+    href: '/users',
+    icon: Users,
+    roles: ['ADMIN'],
+  },
+  {
     title: 'Analytics',
     href: '/analytics',
     icon: BarChart,
     roles: ['ADMIN', 'MANAGER'],
-  },
-  {
-    title: 'Settings',
-    href: '/settings',
-    icon: Settings,
   },
 ];
 

@@ -4,16 +4,21 @@ import { toast } from 'sonner';
 import { 
   User, Category, Product, Order, Delivery, DeliveryDriver,
   LoginRequest, LoginResponse, RegisterRequest, ChangePasswordRequest,
-  ApiResponse,
+  ApiResponse, PaginatedResponse,
   UserFilter, ProductFilter, OrderFilter, DeliveryFilter,
   OrderStatus, DeliveryStatus
 } from '@/types';
 
 // Global error handler for authentication errors
 let authErrorHandler: (() => void) | null = null;
+let unauthorizedHandler: (() => void) | null = null;
 
 export const setAuthErrorHandler = (handler: () => void) => {
   authErrorHandler = handler;
+};
+
+export const setUnauthorizedHandler = (handler: () => void) => {
+  unauthorizedHandler = handler;
 };
 
 class ApiService {
@@ -51,14 +56,23 @@ class ApiService {
           }
           // Don't show toast here for login failures, let the login component handle it
           if (!error.config?.url?.includes('/auth/login')) {
-            toast.error('Session expired. Please login again.');
+            toast.error('Your session has expired. Please log in again.');
           }
         } else if (error.response?.status === 403) {
-          toast.error('You do not have permission to perform this action.');
+          // Handle unauthorized access
+          if (unauthorizedHandler) {
+            unauthorizedHandler();
+          }
+          toast.error('Access denied. You do not have permission to perform this action.');
         } else if (error.response?.data?.error) {
-          // Don't show generic error toast for login failures
+          // Display server error message
           if (!error.config?.url?.includes('/auth/login')) {
             toast.error(error.response.data.error);
+          }
+        } else if (error.response?.data?.message) {
+          // Display server message
+          if (!error.config?.url?.includes('/auth/login')) {
+            toast.error(error.response.data.message);
           }
         } else {
           // Don't show generic error toast for login failures
@@ -87,14 +101,52 @@ class ApiService {
     return response.data;
   }
 
+  async getCurrentUserInfo(): Promise<ApiResponse<User>> {
+    const response = await this.api.get<ApiResponse<User>>('/auth/info');
+    return response.data;
+  }
+
   // User APIs
-  async getUsers(filter?: UserFilter): Promise<User[]> {
-    const response = await this.api.get<ApiResponse<User[]>>('/users', { params: filter });
+  async getUsers(params?: { 
+    page?: number; 
+    size?: number; 
+    sortBy?: string; 
+    sortDir?: string; 
+    role?: string; 
+    enabled?: boolean; 
+    search?: string; 
+  }): Promise<PaginatedResponse<User>> {
+    const response = await this.api.get<PaginatedResponse<User>>('/users', { params });
+    return response.data;
+  }
+
+  async getUsersLegacy(filter?: UserFilter): Promise<User[]> {
+    const response = await this.api.get<ApiResponse<User[]>>('/users/all', { params: filter });
     return response.data.data || [];
   }
 
-  async getUserById(id: number): Promise<User> {
-    const response = await this.api.get<User>(`/users/${id}`);
+  async getUserById(id: number): Promise<ApiResponse<User>> {
+    const response = await this.api.get<ApiResponse<User>>(`/users/${id}`);
+    return response.data;
+  }
+
+  async getUserByUsername(username: string): Promise<ApiResponse<User>> {
+    const response = await this.api.get<ApiResponse<User>>(`/users/username/${username}`);
+    return response.data;
+  }
+
+  async getUsersByRole(role: string): Promise<ApiResponse<User[]>> {
+    const response = await this.api.get<ApiResponse<User[]>>(`/users/role/${role}`);
+    return response.data;
+  }
+
+  async getUsersByEnabledStatus(enabled: boolean): Promise<ApiResponse<User[]>> {
+    const response = await this.api.get<ApiResponse<User[]>>(`/users/enabled/${enabled}`);
+    return response.data;
+  }
+
+  async getAvailableDeliveryStaff(): Promise<ApiResponse<User[]>> {
+    const response = await this.api.get<ApiResponse<User[]>>('/users/delivery-staff/available');
     return response.data;
   }
 
@@ -110,129 +162,362 @@ class ApiService {
     return response.data;
   }
 
-  async deleteUser(id: number): Promise<void> {
-    await this.api.delete(`/users/${id}`);
+  async updateUserRole(id: number, role: string): Promise<ApiResponse<User>> {
+    const response = await this.api.patch<ApiResponse<User>>(`/users/${id}/role`, { role });
+    toast.success('User role updated successfully');
+    return response.data;
+  }
+
+  async toggleUserStatus(id: number): Promise<ApiResponse<User>> {
+    const response = await this.api.patch<ApiResponse<User>>(`/users/${id}/toggle-status`);
+    toast.success('User status updated successfully');
+    return response.data;
+  }
+
+  async deleteUser(id: number): Promise<ApiResponse<void>> {
+    const response = await this.api.delete<ApiResponse<void>>(`/users/${id}`);
     toast.success('User deleted successfully');
+    return response.data;
   }
 
   // Category APIs
-  async getCategories(): Promise<Category[]> {
+  async getCategories(params?: { 
+    page?: number; 
+    size?: number; 
+    sortBy?: string; 
+    sortDir?: string; 
+    name?: string; 
+  }): Promise<PaginatedResponse<Category>> {
+    const response = await this.api.get<PaginatedResponse<Category>>('/categories', { params });
+    return response.data;
+  }
+
+  async getCategoriesLegacy(): Promise<Category[]> {
     const response = await this.api.get<ApiResponse<Category[]>>('/categories');
     return response.data.data || [];
   }
 
-  async getCategoryById(id: number): Promise<Category> {
-    const response = await this.api.get<Category>(`/categories/${id}`);
+  async getCategoryById(id: number): Promise<ApiResponse<Category>> {
+    const response = await this.api.get<ApiResponse<Category>>(`/categories/${id}`);
     return response.data;
   }
 
-  async createCategory(data: Partial<Category>): Promise<Category> {
-    const response = await this.api.post<Category>('/categories', data);
+  async searchCategories(name: string): Promise<ApiResponse<Category[]>> {
+    const response = await this.api.get<ApiResponse<Category[]>>('/categories/search', { params: { name } });
+    return response.data;
+  }
+
+  async checkCategoryExists(name: string): Promise<ApiResponse<boolean>> {
+    const response = await this.api.get<ApiResponse<boolean>>(`/categories/exists/${name}`);
+    return response.data;
+  }
+
+  async createCategory(data: Partial<Category>): Promise<ApiResponse<Category>> {
+    const response = await this.api.post<ApiResponse<Category>>('/categories', data);
     toast.success('Category created successfully');
     return response.data;
   }
 
-  async updateCategory(id: number, data: Partial<Category>): Promise<Category> {
-    const response = await this.api.put<Category>(`/categories/${id}`, data);
+  async updateCategory(id: number, data: Partial<Category>): Promise<ApiResponse<Category>> {
+    const response = await this.api.put<ApiResponse<Category>>(`/categories/${id}`, data);
     toast.success('Category updated successfully');
     return response.data;
   }
 
-  async deleteCategory(id: number): Promise<void> {
-    await this.api.delete(`/categories/${id}`);
+  async deleteCategory(id: number): Promise<ApiResponse<void>> {
+    const response = await this.api.delete<ApiResponse<void>>(`/categories/${id}`);
     toast.success('Category deleted successfully');
-  }
-
-  // Product APIs
-  async getProducts(filter?: ProductFilter): Promise<Product[]> {
-    const response = await this.api.get<ApiResponse<Product[]>>('/products', { params: filter });
-    return response.data.data || [];
-  }
-
-  async getProductById(id: number): Promise<Product> {
-    const response = await this.api.get<Product>(`/products/${id}`);
     return response.data;
   }
 
-  async createProduct(data: Partial<Product>): Promise<Product> {
-    const response = await this.api.post<Product>('/products', data);
+  // Product APIs
+  async getProducts(params?: {
+    page?: number;
+    size?: number;
+    sortBy?: string;
+    sortDir?: string;
+    category?: string;
+    available?: boolean;
+    name?: string;
+    minPrice?: number;
+    maxPrice?: number;
+  }): Promise<PaginatedResponse<Product>> {
+    const response = await this.api.get<PaginatedResponse<Product>>('/products', { params });
+    return response.data;
+  }
+
+  async getProductsLegacy(filter?: ProductFilter): Promise<Product[]> {
+    const response = await this.api.get<ApiResponse<Product[]>>('/products/all', { params: filter });
+    return response.data.data || [];
+  }
+
+  async getAvailableProducts(): Promise<ApiResponse<Product[]>> {
+    const response = await this.api.get<ApiResponse<Product[]>>('/products/available');
+    return response.data;
+  }
+
+  async getProductById(id: number): Promise<ApiResponse<Product>> {
+    const response = await this.api.get<ApiResponse<Product>>(`/products/${id}`);
+    return response.data;
+  }
+
+  async getProductsByCategory(categoryId: number): Promise<ApiResponse<Product[]>> {
+    const response = await this.api.get<ApiResponse<Product[]>>(`/products/category/${categoryId}`);
+    return response.data;
+  }
+
+  async getAvailableProductsByCategory(categoryId: number): Promise<ApiResponse<Product[]>> {
+    const response = await this.api.get<ApiResponse<Product[]>>(`/products/category/${categoryId}/available`);
+    return response.data;
+  }
+
+  async searchProducts(name: string): Promise<ApiResponse<Product[]>> {
+    const response = await this.api.get<ApiResponse<Product[]>>('/products/search', { params: { name } });
+    return response.data;
+  }
+
+  async getProductsByPriceRange(minPrice: number, maxPrice: number): Promise<ApiResponse<Product[]>> {
+    const response = await this.api.get<ApiResponse<Product[]>>('/products/price-range', { 
+      params: { minPrice, maxPrice } 
+    });
+    return response.data;
+  }
+
+  async checkProductExists(name: string): Promise<ApiResponse<boolean>> {
+    const response = await this.api.get<ApiResponse<boolean>>(`/products/exists/${name}`);
+    return response.data;
+  }
+
+  async createProduct(data: Partial<Product>): Promise<ApiResponse<Product>> {
+    const response = await this.api.post<ApiResponse<Product>>('/products', data);
     toast.success('Product created successfully');
     return response.data;
   }
 
-  async updateProduct(id: number, data: Partial<Product>): Promise<Product> {
-    const response = await this.api.put<Product>(`/products/${id}`, data);
+  async updateProduct(id: number, data: Partial<Product>): Promise<ApiResponse<Product>> {
+    const response = await this.api.put<ApiResponse<Product>>(`/products/${id}`, data);
     toast.success('Product updated successfully');
     return response.data;
   }
 
-  async deleteProduct(id: number): Promise<void> {
-    await this.api.delete(`/products/${id}`);
-    toast.success('Product deleted successfully');
-  }
-
-  // Order APIs
-  async getOrders(filter?: OrderFilter): Promise<Order[]> {
-    const response = await this.api.get<ApiResponse<Order[]>>('/orders', { params: filter });
-    return response.data.data || [];
-  }
-
-  async getOrderById(id: number): Promise<Order> {
-    const response = await this.api.get<Order>(`/orders/${id}`);
+  async toggleProductAvailability(id: number): Promise<ApiResponse<Product>> {
+    const response = await this.api.patch<ApiResponse<Product>>(`/products/${id}/toggle-availability`);
+    toast.success('Product availability updated successfully');
     return response.data;
   }
 
-  async createOrder(data: Partial<Order>): Promise<Order> {
-    const response = await this.api.post<Order>('/orders/create', data);
+  async deleteProduct(id: number): Promise<ApiResponse<void>> {
+    const response = await this.api.delete<ApiResponse<void>>(`/products/${id}`);
+    toast.success('Product deleted successfully');
+    return response.data;
+  }
+
+  // Order APIs
+  async getOrders(params?: {
+    page?: number;
+    size?: number;
+    sortBy?: string;
+    sortDir?: string;
+    status?: string;
+    customerId?: number;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<PaginatedResponse<Order>> {
+    const response = await this.api.get<PaginatedResponse<Order>>('/orders', { params });
+    return response.data;
+  }
+
+  async getOrdersLegacy(filter?: OrderFilter): Promise<Order[]> {
+    const response = await this.api.get<ApiResponse<Order[]>>('/orders/all', { params: filter });
+    return response.data.data || [];
+  }
+
+  async getOrderById(id: number): Promise<ApiResponse<Order>> {
+    const response = await this.api.get<ApiResponse<Order>>(`/orders/${id}`);
+    return response.data;
+  }
+
+  async getOrdersByCustomer(customerId: number, params?: { page?: number; size?: number }): Promise<PaginatedResponse<Order>> {
+    const response = await this.api.get<PaginatedResponse<Order>>(`/orders/customer/${customerId}`, { params });
+    return response.data;
+  }
+
+  async getOrdersByStatus(status: string, params?: { page?: number; size?: number }): Promise<PaginatedResponse<Order>> {
+    const response = await this.api.get<PaginatedResponse<Order>>(`/orders/status/${status}`, { params });
+    return response.data;
+  }
+
+  async getOrdersByDateRange(startDate: string, endDate: string, params?: { page?: number; size?: number }): Promise<PaginatedResponse<Order>> {
+    const response = await this.api.get<PaginatedResponse<Order>>('/orders/date-range', { 
+      params: { startDate, endDate, ...params } 
+    });
+    return response.data;
+  }
+
+  async createOrder(data: Partial<Order>): Promise<ApiResponse<Order>> {
+    const response = await this.api.post<ApiResponse<Order>>('/orders', data);
     toast.success('Order created successfully');
     return response.data;
   }
 
-  async updateOrderStatus(id: number, status: OrderStatus): Promise<Order> {
-    const response = await this.api.put<Order>(`/orders/${id}/status`, { status });
+  async updateOrderStatus(id: number, status: string): Promise<ApiResponse<Order>> {
+    const response = await this.api.patch<ApiResponse<Order>>(`/orders/${id}/status`, { status });
     toast.success('Order status updated successfully');
     return response.data;
   }
 
+  async cancelOrder(id: number): Promise<ApiResponse<Order>> {
+    const response = await this.api.patch<ApiResponse<Order>>(`/orders/${id}/cancel`);
+    toast.success('Order cancelled successfully');
+    return response.data;
+  }
+
+  async deleteOrder(id: number): Promise<ApiResponse<void>> {
+    const response = await this.api.delete<ApiResponse<void>>(`/orders/${id}`);
+    toast.success('Order deleted successfully');
+    return response.data;
+  }
+
   // Delivery APIs
-  async getDeliveries(filter?: DeliveryFilter): Promise<Delivery[]> {
-    const response = await this.api.get<ApiResponse<Delivery[]>>('/deliveries', { params: filter });
+  async getDeliveries(params?: {
+    page?: number;
+    size?: number;
+    sortBy?: string;
+    sortDir?: string;
+    status?: string;
+    driverId?: number;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<PaginatedResponse<Delivery>> {
+    const response = await this.api.get<PaginatedResponse<Delivery>>('/deliveries', { params });
+    return response.data;
+  }
+
+  async getDeliveriesLegacy(filter?: DeliveryFilter): Promise<Delivery[]> {
+    const response = await this.api.get<ApiResponse<Delivery[]>>('/deliveries/all', { params: filter });
     return response.data.data || [];
   }
 
-  async assignDelivery(orderId: number, deliveryStaffId: number): Promise<Delivery> {
-    const response = await this.api.post<Delivery>('/deliveries/assign', {
-      orderId,
-      deliveryStaffId
+  async getDeliveryById(id: number): Promise<ApiResponse<Delivery>> {
+    const response = await this.api.get<ApiResponse<Delivery>>(`/deliveries/${id}`);
+    return response.data;
+  }
+
+  async getDeliveriesByDriver(driverId: number, params?: { page?: number; size?: number }): Promise<PaginatedResponse<Delivery>> {
+    const response = await this.api.get<PaginatedResponse<Delivery>>(`/deliveries/driver/${driverId}`, { params });
+    return response.data;
+  }
+
+  async getDeliveriesByStatus(status: string, params?: { page?: number; size?: number }): Promise<PaginatedResponse<Delivery>> {
+    const response = await this.api.get<PaginatedResponse<Delivery>>(`/deliveries/status/${status}`, { params });
+    return response.data;
+  }
+
+  async getDeliveriesByDateRange(startDate: string, endDate: string, params?: { page?: number; size?: number }): Promise<PaginatedResponse<Delivery>> {
+    const response = await this.api.get<PaginatedResponse<Delivery>>('/deliveries/date-range', {
+      params: { startDate, endDate, ...params }
     });
+    return response.data;
+  }
+
+  async assignDelivery(orderId: number, driverId: number, notes?: string): Promise<ApiResponse<Delivery>> {
+    const response = await this.api.post<ApiResponse<Delivery>>('/deliveries/assign', { orderId, driverId, notes });
     toast.success('Delivery assigned successfully');
     return response.data;
   }
 
-  async updateDeliveryStatus(id: number, status: DeliveryStatus): Promise<Delivery> {
-    const response = await this.api.put<Delivery>(`/deliveries/${id}/status`, { status });
+  async updateDeliveryStatus(id: number, status: string, notes?: string): Promise<ApiResponse<Delivery>> {
+    const response = await this.api.patch<ApiResponse<Delivery>>(`/deliveries/${id}/status`, { status, notes });
     toast.success('Delivery status updated successfully');
     return response.data;
   }
 
-  async getMyDeliveries(): Promise<Delivery[]> {
-    const response = await this.api.get<ApiResponse<Delivery[]>>('/deliveries/my');
+  async getMyDeliveries(params?: { page?: number; size?: number; status?: string }): Promise<PaginatedResponse<Delivery>> {
+    const response = await this.api.get<PaginatedResponse<Delivery>>('/deliveries/my', { params });
+    return response.data;
+  }
+
+  async getMyDeliveriesLegacy(): Promise<Delivery[]> {
+    const response = await this.api.get<ApiResponse<Delivery[]>>('/deliveries/my/all');
     return response.data.data || [];
   }
 
-  // Additional Order APIs for Kitchen and Delivery
-  async getKitchenOrders(): Promise<Order[]> {
-    const response = await this.api.get<ApiResponse<Order[]>>('/orders/kitchen');
+  async completeDelivery(id: number, notes?: string): Promise<ApiResponse<Delivery>> {
+    const response = await this.api.patch<ApiResponse<Delivery>>(`/deliveries/${id}/complete`, { notes });
+    toast.success('Delivery completed successfully');
+    return response.data;
+  }
+
+  async cancelDelivery(id: number, reason?: string): Promise<ApiResponse<Delivery>> {
+    const response = await this.api.patch<ApiResponse<Delivery>>(`/deliveries/${id}/cancel`, { reason });
+    toast.success('Delivery cancelled successfully');
+    return response.data;
+  }
+
+  // Kitchen Orders
+  async getKitchenOrders(params?: {
+    page?: number;
+    size?: number;
+    sortBy?: string;
+    sortDir?: string;
+    status?: string;
+  }): Promise<PaginatedResponse<Order>> {
+    const response = await this.api.get<PaginatedResponse<Order>>('/orders/kitchen', { params });
+    return response.data;
+  }
+
+  async getKitchenOrdersLegacy(filter?: OrderFilter): Promise<Order[]> {
+    const response = await this.api.get<ApiResponse<Order[]>>('/orders/kitchen/all', { params: filter });
     return response.data.data || [];
   }
 
-  async getDeliveryOrders(): Promise<Order[]> {
-    const response = await this.api.get<ApiResponse<Order[]>>('/orders/delivery');
+  async getKitchenOrdersByStatus(status: string, params?: { page?: number; size?: number }): Promise<PaginatedResponse<Order>> {
+    const response = await this.api.get<PaginatedResponse<Order>>(`/orders/kitchen/status/${status}`, { params });
+    return response.data;
+  }
+
+  async updateKitchenOrderStatus(id: number, status: string): Promise<ApiResponse<Order>> {
+    const response = await this.api.patch<ApiResponse<Order>>(`/orders/kitchen/${id}/status`, { status });
+    toast.success('Kitchen order status updated successfully');
+    return response.data;
+  }
+
+  // Delivery Orders
+  async getDeliveryOrders(params?: {
+    page?: number;
+    size?: number;
+    sortBy?: string;
+    sortDir?: string;
+    status?: string;
+    driverId?: number;
+  }): Promise<PaginatedResponse<Order>> {
+    const response = await this.api.get<PaginatedResponse<Order>>('/orders/delivery', { params });
+    return response.data;
+  }
+
+  async getDeliveryOrdersLegacy(filter?: OrderFilter): Promise<Order[]> {
+    const response = await this.api.get<ApiResponse<Order[]>>('/orders/delivery/all', { params: filter });
     return response.data.data || [];
   }
 
-  async assignDeliveryDriver(orderId: number, driverId: number, notes?: string): Promise<Order> {
-    const response = await this.api.post<Order>(`/orders/${orderId}/assign-driver`, {
+  async getDeliveryOrdersByStatus(status: string, params?: { page?: number; size?: number }): Promise<PaginatedResponse<Order>> {
+    const response = await this.api.get<PaginatedResponse<Order>>(`/orders/delivery/status/${status}`, { params });
+    return response.data;
+  }
+
+  async getDeliveryOrdersByDriver(driverId: number, params?: { page?: number; size?: number }): Promise<PaginatedResponse<Order>> {
+    const response = await this.api.get<PaginatedResponse<Order>>(`/orders/delivery/driver/${driverId}`, { params });
+    return response.data;
+  }
+
+  async updateDeliveryOrderStatus(id: number, status: string): Promise<ApiResponse<Order>> {
+    const response = await this.api.patch<ApiResponse<Order>>(`/orders/delivery/${id}/status`, { status });
+    toast.success('Delivery order status updated successfully');
+    return response.data;
+  }
+
+  async assignDeliveryDriver(orderId: number, driverId: number, notes?: string): Promise<ApiResponse<Order>> {
+    const response = await this.api.post<ApiResponse<Order>>(`/orders/${orderId}/assign-driver`, {
       driverId,
       notes
     });
@@ -241,59 +526,114 @@ class ApiService {
   }
 
   // Delivery Driver APIs
-  async getDeliveryDrivers(): Promise<DeliveryDriver[]> {
-    const response = await this.api.get<ApiResponse<DeliveryDriver[]>>('/delivery-drivers');
+  async getDeliveryDrivers(params?: {
+    page?: number;
+    size?: number;
+    sortBy?: string;
+    sortDir?: string;
+    available?: boolean;
+    status?: string;
+  }): Promise<PaginatedResponse<User>> {
+    const response = await this.api.get<PaginatedResponse<User>>('/delivery-drivers', { params });
+    return response.data;
+  }
+
+  async getDeliveryDriversLegacy(): Promise<User[]> {
+    const response = await this.api.get<ApiResponse<User[]>>('/delivery-drivers/all');
     return response.data.data || [];
   }
 
+  async getAvailableDeliveryDrivers(): Promise<ApiResponse<User[]>> {
+    const response = await this.api.get<ApiResponse<User[]>>('/delivery-drivers/available');
+    return response.data;
+  }
+
+  async getDeliveryDriverById(id: number): Promise<ApiResponse<User>> {
+    const response = await this.api.get<ApiResponse<User>>(`/delivery-drivers/${id}`);
+    return response.data;
+  }
+
+  async getDeliveryDriversByStatus(status: string, params?: { page?: number; size?: number }): Promise<PaginatedResponse<User>> {
+    const response = await this.api.get<PaginatedResponse<User>>(`/delivery-drivers/status/${status}`, { params });
+    return response.data;
+  }
+
+  async updateDeliveryDriverStatus(id: number, status: string): Promise<ApiResponse<User>> {
+    const response = await this.api.patch<ApiResponse<User>>(`/delivery-drivers/${id}/status`, { status });
+    toast.success('Delivery driver status updated successfully');
+    return response.data;
+  }
+
+  async assignDeliveryToDriver(driverId: number, orderId: number): Promise<ApiResponse<Delivery>> {
+    const response = await this.api.post<ApiResponse<Delivery>>(`/delivery-drivers/${driverId}/assign`, { orderId });
+    toast.success('Order assigned to driver successfully');
+    return response.data;
+  }
+
   // Dashboard Statistics
-  async getDashboardStats(): Promise<unknown> {
-    const response = await this.api.get('/dashboard/stats');
+  async getDashboardStats(): Promise<ApiResponse<any>> {
+    const response = await this.api.get<ApiResponse<any>>('/dashboard/stats');
+    return response.data;
+  }
+
+  async getDashboardOrderStats(): Promise<ApiResponse<any>> {
+    const response = await this.api.get<ApiResponse<any>>('/dashboard/orders/stats');
+    return response.data;
+  }
+
+  async getDashboardRevenueStats(): Promise<ApiResponse<any>> {
+    const response = await this.api.get<ApiResponse<any>>('/dashboard/revenue/stats');
+    return response.data;
+  }
+
+  async getDashboardDeliveryStats(): Promise<ApiResponse<any>> {
+    const response = await this.api.get<ApiResponse<any>>('/dashboard/deliveries/stats');
     return response.data;
   }
 
   // Analytics APIs
-  async getAnalyticsData(dateRange: Record<string, unknown>): Promise<unknown> {
-    const response = await this.api.get('/analytics/data', { params: dateRange });
+  async getAnalyticsData(params?: {
+    startDate?: string;
+    endDate?: string;
+    type?: string;
+  }): Promise<ApiResponse<any>> {
+    const response = await this.api.get<ApiResponse<any>>('/analytics', { params });
     return response.data;
   }
 
-  async exportAnalyticsData(period: string, startDate: Date | null, endDate: Date | null): Promise<void> {
-    const params: Record<string, string> = { period };
-    if (startDate) params.startDate = startDate.toISOString();
-    if (endDate) params.endDate = endDate.toISOString();
-    
+  async exportAnalyticsData(format: 'csv' | 'excel', params?: {
+    startDate?: string;
+    endDate?: string;
+    type?: string;
+  }): Promise<Blob> {
     const response = await this.api.get('/analytics/export', {
-      params,
+      params: { format, ...params },
       responseType: 'blob'
     });
-    
-    // Create download link
-    const blob = new Blob([response.data]);
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `analytics-${period}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+    return response.data;
   }
 
   // Settings APIs
-  async getSettings(): Promise<{
-    restaurant?: unknown;
-    notifications?: unknown;
-    operational?: unknown;
-    payment?: unknown;
-  }> {
-    const response = await this.api.get('/settings');
+  async getSettings(): Promise<ApiResponse<any>> {
+    const response = await this.api.get<ApiResponse<any>>('/settings');
     return response.data;
   }
 
-  async updateSettings(section: string, data: Record<string, unknown>): Promise<void> {
-    await this.api.put(`/settings/${section}`, data);
-    toast.success(`${section} settings updated successfully`);
+  async updateSettings(data: any): Promise<ApiResponse<any>> {
+    const response = await this.api.put<ApiResponse<any>>('/settings', data);
+    toast.success('Settings updated successfully');
+    return response.data;
+  }
+
+  async getSettingsByKey(key: string): Promise<ApiResponse<any>> {
+    const response = await this.api.get<ApiResponse<any>>(`/settings/${key}`);
+    return response.data;
+  }
+
+  async updateSettingsByKey(key: string, value: any): Promise<ApiResponse<any>> {
+    const response = await this.api.put<ApiResponse<any>>(`/settings/${key}`, { value });
+    toast.success('Setting updated successfully');
+    return response.data;
   }
 }
 

@@ -109,10 +109,12 @@ export default function ProductsPage() {
 
   const loadData = async () => {
     try {
-      const [productsData, categoriesData] = await Promise.all([
-        apiService.getProducts(),
-        apiService.getCategories(),
+      const [productsResponse, categoriesResponse] = await Promise.all([
+        apiService.getProducts({ page: 0, size: 100 }),
+        apiService.getCategories({ page: 0, size: 100 }),
       ]);
+      const productsData = productsResponse.data.content;
+      const categoriesData = categoriesResponse.data.content;
       setProducts(productsData);
        setCategories(categoriesData);
        setFilteredProducts(productsData);
@@ -187,13 +189,13 @@ export default function ProductsPage() {
       header: 'Product Name',
     },
     {
-      accessorKey: 'categoryId',
+      accessorKey: 'category.name',
       header: 'Category',
-      cell: ({ row }) => {
-        const categoryId = row.getValue('categoryId') as number;
+      cell: ({ getValue }) => {
+        const value = getValue<String>();
         return (
           <Badge variant="outline">
-            {getCategoryName(categoryId)}
+            { value }
           </Badge>
         );
       },
