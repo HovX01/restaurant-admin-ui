@@ -61,10 +61,11 @@ export default function DeliveriesPage() {
     try {
       setLoading(true);
       const response = await apiService.getDeliveryOrders({ page: 0, size: 100 });
-      const data = response.data.content;
+      const data = response.data.content || [];
       setOrders(data);
     } catch (error) {
       console.error('Failed to load delivery orders:', error);
+      setOrders([]);
     } finally {
       setLoading(false);
     }
@@ -73,10 +74,11 @@ export default function DeliveriesPage() {
   const loadDrivers = async () => {
     try {
       const response = await apiService.getDeliveryDrivers({ page: 0, size: 100 });
-      const data = response.data.content;
+      const data = response.data.content || [];
       setDrivers(data);
     } catch (error) {
       console.error('Failed to load drivers:', error);
+      setDrivers([]);
     }
   };
 
@@ -163,10 +165,10 @@ export default function DeliveriesPage() {
 
 
 
-  const readyOrders = orders.filter(o => o.status === 'READY');
-  const outForDeliveryOrders = orders.filter(o => o.status === 'OUT_FOR_DELIVERY');
-  const deliveredOrders = orders.filter(o => o.status === 'DELIVERED');
-  const availableDrivers = drivers.filter(d => d.enabled);
+  const readyOrders = (orders || []).filter(o => o.status === 'READY');
+  const outForDeliveryOrders = (orders || []).filter(o => o.status === 'OUT_FOR_DELIVERY');
+  const deliveredOrders = (orders || []).filter(o => o.status === 'DELIVERED');
+  const availableDrivers = (drivers || []).filter(d => d.enabled);
 
   const deliveryColumns: ColumnDef<Order>[] = [
     {
@@ -360,7 +362,7 @@ export default function DeliveriesPage() {
 
             <TabsContent value="orders" className="space-y-4">
               <DataTable
-                data={orders}
+                data={orders || []}
                 columns={deliveryColumns}
                 searchPlaceholder="Search orders..."
               />
@@ -368,7 +370,7 @@ export default function DeliveriesPage() {
 
             <TabsContent value="drivers" className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {drivers.map((driver) => (
+                {(drivers || []).map((driver) => (
                   <Card key={driver.id}>
                     <CardHeader>
                       <div className="flex items-center justify-between">
