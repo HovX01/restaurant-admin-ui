@@ -48,14 +48,22 @@ class ApiService {
     this.api.interceptors.response.use(
       (response) => response,
       (error: AxiosError<ApiResponse>) => {
+        const isLoginRequest = error.config?.url?.includes('/auth/login');
+        const isRegisterRequest = error.config?.url?.includes('/auth/register');
+        const shouldShowToast = !isLoginRequest && !isRegisterRequest;
+
         if (error.response?.status === 401) {
-          // Token expired or invalid - handle without page refresh
+          // Token expired or invalid
+          if (isLoginRequest) {
+            // For login failures, don't handle here - let the login component handle it
+            return Promise.reject(error);
+          }
+          // For authenticated requests, clear token and redirect
           Cookies.remove('jwt-token');
           if (authErrorHandler) {
             authErrorHandler();
           }
-          // Don't show toast here for login failures, let the login component handle it
-          if (!error.config?.url?.includes('/auth/login')) {
+          if (shouldShowToast) {
             toast.error('Your session has expired. Please log in again.');
           }
         } else if (error.response?.status === 403) {
@@ -63,20 +71,28 @@ class ApiService {
           if (unauthorizedHandler) {
             unauthorizedHandler();
           }
-          toast.error('Access denied. You do not have permission to perform this action.');
-        } else if (error.response?.data?.error) {
-          // Display server error message
-          if (!error.config?.url?.includes('/auth/login')) {
-            toast.error(error.response.data.error);
+          if (shouldShowToast) {
+            toast.error('Access denied. You do not have permission to perform this action.');
           }
-        } else if (error.response?.data?.message) {
-          // Display server message
-          if (!error.config?.url?.includes('/auth/login')) {
-            toast.error(error.response.data.message);
+        } else if (error.response) {
+          // Extract error message from response
+          const errorMessage = 
+            error.response.data?.error || 
+            error.response.data?.message || 
+            error.response.statusText ||
+            'An unexpected error occurred.';
+          
+          if (shouldShowToast) {
+            toast.error(errorMessage);
+          }
+        } else if (error.request) {
+          // Network error - no response received
+          if (shouldShowToast) {
+            toast.error('Network error. Please check your connection.');
           }
         } else {
-          // Don't show generic error toast for login failures
-          if (!error.config?.url?.includes('/auth/login')) {
+          // Other errors
+          if (shouldShowToast) {
             toast.error('An unexpected error occurred.');
           }
         }
