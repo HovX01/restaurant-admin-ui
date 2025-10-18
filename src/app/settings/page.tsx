@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiService } from '@/services/api.service';
+import { PageSkeleton } from '@/components/ui/loading';
 
 
 interface RestaurantSettings {
@@ -211,9 +212,7 @@ export default function SettingsPage() {
     return (
       <ProtectedRoute requiredRoles={['ADMIN']}>
         <AdminLayout>
-          <div className="flex items-center justify-center min-h-[400px]">
-            <RefreshCw className="h-8 w-8 animate-spin" />
-          </div>
+          <PageSkeleton />
         </AdminLayout>
       </ProtectedRoute>
     );

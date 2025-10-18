@@ -6,9 +6,8 @@ import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -22,18 +21,17 @@ import {
   Phone,
   User,
   RefreshCw,
-  Plus,
   Eye,
-  Edit2,
   AlertCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiService } from '@/services/api.service';
 import { websocketService } from '@/services/websocket.service';
-import { Order, OrderStatus, User as UserType, WebSocketMessage, DeliveryDriver } from '@/types';
+import { Order, OrderStatus, User as UserType, WebSocketMessage } from '@/types';
 import { format } from 'date-fns';
 import { DataTable } from '@/components/ui/data-table';
 import { ColumnDef } from '@tanstack/react-table';
+import { PageSkeleton } from '@/components/ui/loading';
 
 export default function DeliveriesPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -55,6 +53,7 @@ export default function DeliveriesPage() {
       websocketService.off('/topic/deliveries', handleDeliveryUpdate);
       websocketService.off('/topic/orders', handleOrderUpdate);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadDeliveryOrders = async () => {
@@ -87,7 +86,7 @@ export default function DeliveriesPage() {
     websocketService.on('/topic/orders', handleOrderUpdate);
   };
 
-  const handleDeliveryUpdate = (message: WebSocketMessage) => {
+  const handleDeliveryUpdate = () => {
     loadDeliveryOrders();
     loadDrivers();
   };
@@ -280,17 +279,20 @@ export default function DeliveriesPage() {
   return (
     <ProtectedRoute requiredRoles={['ADMIN', 'MANAGER', 'DELIVERY_STAFF']}>
       <AdminLayout>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-                <Truck className="h-8 w-8" />
-                Delivery Management
-              </h1>
-              <p className="text-muted-foreground">
-                Manage delivery orders and track deliveries
-              </p>
-            </div>
+        {loading ? (
+          <PageSkeleton />
+        ) : (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+                  <Truck className="h-8 w-8" />
+                  Delivery Management
+                </h1>
+                <p className="text-muted-foreground">
+                  Manage delivery orders and track deliveries
+                </p>
+              </div>
             <Button onClick={handleRefresh} disabled={refreshing}>
               <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
               Refresh
@@ -571,6 +573,7 @@ export default function DeliveriesPage() {
             </DialogContent>
           </Dialog>
         </div>
+        )}
       </AdminLayout>
     </ProtectedRoute>
   );

@@ -24,6 +24,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { DashboardSkeleton } from '@/components/ui/loading';
 
 interface DashboardStats {
   totalUsers: number;
@@ -79,8 +80,6 @@ export default function DashboardPage() {
       ]);
 
       const orders = ordersResponse.data.content;
-      const products = productsResponse.data.content;
-      const users = usersResponse.data.content;
 
       setRecentOrders(orders.slice(0, 5));
       
@@ -175,16 +174,19 @@ export default function DashboardPage() {
   return (
     <ProtectedRoute>
       <AdminLayout>
-        <div className="space-y-6">
-          {/* Welcome Header */}
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              Welcome back, {user?.username}!
-            </h1>
-            <p className="text-muted-foreground">
-              Here&apos;s what&apos;s happening with your restaurant today.
-            </p>
-          </div>
+        {isLoading ? (
+          <DashboardSkeleton />
+        ) : (
+          <div className="space-y-6">
+            {/* Welcome Header */}
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">
+                Welcome back, {user?.username}!
+              </h1>
+              <p className="text-muted-foreground">
+                Here&apos;s what&apos;s happening with your restaurant today.
+              </p>
+            </div>
 
           {/* Stats Grid */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -347,6 +349,7 @@ export default function DashboardPage() {
             </Card>
           </div>
         </div>
+        )}
       </AdminLayout>
     </ProtectedRoute>
   );

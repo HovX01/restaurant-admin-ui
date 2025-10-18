@@ -47,6 +47,7 @@ import { toast } from 'sonner';
 import { apiService } from '@/services/api.service';
 import { Category } from '@/types';
 import { format } from 'date-fns';
+import { PageSkeleton } from '@/components/ui/loading';
 
 interface CategoryFormData {
   name: string;
@@ -204,14 +205,17 @@ export default function CategoriesPage() {
   return (
     <ProtectedRoute requiredRoles={['ADMIN', 'MANAGER']}>
       <AdminLayout>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Categories</h1>
-              <p className="text-muted-foreground">
-                Manage product categories for better organization
-              </p>
-            </div>
+        {loading ? (
+          <PageSkeleton />
+        ) : (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">Categories</h1>
+                <p className="text-muted-foreground">
+                  Manage product categories for better organization
+                </p>
+              </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button onClick={() => resetForm()}>
@@ -288,6 +292,7 @@ export default function CategoriesPage() {
             </CardContent>
           </Card>
         </div>
+        )}
       </AdminLayout>
     </ProtectedRoute>
   );

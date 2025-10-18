@@ -54,6 +54,7 @@ import { toast } from 'sonner';
 import { apiService } from '@/services/api.service';
 import { User, UserRole } from '@/types/index';
 import { format } from 'date-fns';
+import { PageSkeleton } from '@/components/ui/loading';
 
 interface UserFormData {
   username: string;
@@ -64,6 +65,7 @@ interface UserFormData {
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -83,12 +85,15 @@ export default function UsersPage() {
 
   const loadUsers = async () => {
     try {
+      setIsLoading(true);
       const response = await apiService.getUsers({ page: 0, size: 100 });
       const data = response.data.content;
       setUsers(data);
     } catch (error) {
       console.error('Failed to load users:', error);
       toast.error('Failed to load users');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -239,14 +244,17 @@ export default function UsersPage() {
   return (
     <ProtectedRoute requiredRoles={['ADMIN', 'MANAGER']}>
       <AdminLayout>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Users</h1>
-              <p className="text-muted-foreground">
-                Manage system users and their roles
-              </p>
-            </div>
+        {isLoading ? (
+          <PageSkeleton />
+        ) : (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">Users</h1>
+                <p className="text-muted-foreground">
+                  Manage system users and their roles
+                </p>
+              </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button onClick={() => resetForm()}>
@@ -368,6 +376,7 @@ export default function UsersPage() {
             </CardContent>
           </Card>
         </div>
+        )}
       </AdminLayout>
     </ProtectedRoute>
   );
