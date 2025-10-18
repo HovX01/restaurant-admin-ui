@@ -79,8 +79,6 @@ export default function DashboardPage() {
       ]);
 
       const orders = ordersResponse.data.content;
-      const products = productsResponse.data.content;
-      const users = usersResponse.data.content;
 
       setRecentOrders(orders.slice(0, 5));
       
@@ -154,156 +152,168 @@ export default function DashboardPage() {
   const getStatusColor = (status: OrderStatus) => {
     switch (status) {
       case 'PENDING':
-        return 'warning';
+        return 'outline';
       case 'CONFIRMED':
-        return 'info';
       case 'PREPARING':
-        return 'info';
+        return 'secondary';
       case 'READY':
-        return 'success';
       case 'OUT_FOR_DELIVERY':
-        return 'warning';
+        return 'default';
       case 'DELIVERED':
-        return 'success';
+        return 'secondary';
       case 'CANCELLED':
         return 'destructive';
       default:
-        return 'secondary';
+        return 'outline';
     }
   };
 
   return (
     <ProtectedRoute>
       <AdminLayout>
-        <div className="space-y-6">
-          {/* Welcome Header */}
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              Welcome back, {user?.username}!
+        <div className="space-y-10">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-semibold tracking-tight">
+              Welcome back, {user?.username}
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-base text-muted-foreground">
               Here&apos;s what&apos;s happening with your restaurant today.
             </p>
           </div>
 
-          {/* Stats Grid */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+            <Card className="group border border-border/60 shadow-md shadow-primary/5 transition-all hover:border-border/80 hover:shadow-lg hover:shadow-primary/10">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Revenue</CardTitle>
+                <div className="rounded-lg bg-muted/60 p-2 transition-colors group-hover:bg-muted">
+                  <DollarSign className="h-5 w-5 text-foreground/70" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">${stats.monthlyRevenue.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground">
-                  <span className="text-green-600">+{stats.growthRate}%</span> from last month
+                <div className="text-3xl font-semibold tracking-tight">${stats.monthlyRevenue.toFixed(2)}</div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  <span className="font-medium text-emerald-600">+{stats.growthRate}%</span> from last month
                 </p>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Pending Orders</CardTitle>
-                <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+            <Card className="group border border-border/60 shadow-md shadow-primary/5 transition-all hover:border-border/80 hover:shadow-lg hover:shadow-primary/10">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Pending Orders</CardTitle>
+                <div className="rounded-lg bg-muted/60 p-2 transition-colors group-hover:bg-muted">
+                  <ShoppingCart className="h-5 w-5 text-foreground/70" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.pendingOrders}</div>
-                <p className="text-xs text-muted-foreground">
+                <div className="text-3xl font-semibold tracking-tight">{stats.pendingOrders}</div>
+                <p className="mt-2 text-xs text-muted-foreground">
                   {stats.totalOrders} total orders today
                 </p>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Deliveries</CardTitle>
-                <Truck className="h-4 w-4 text-muted-foreground" />
+            <Card className="group border border-border/60 shadow-md shadow-primary/5 transition-all hover:border-border/80 hover:shadow-lg hover:shadow-primary/10">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Active Deliveries</CardTitle>
+                <div className="rounded-lg bg-muted/60 p-2 transition-colors group-hover:bg-muted">
+                  <Truck className="h-5 w-5 text-foreground/70" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.activeDeliveries}</div>
-                <p className="text-xs text-muted-foreground">
+                <div className="text-3xl font-semibold tracking-tight">{stats.activeDeliveries}</div>
+                <p className="mt-2 text-xs text-muted-foreground">
                   Currently out for delivery
                 </p>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Today&apos;s Revenue</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <Card className="group border border-border/60 shadow-md shadow-primary/5 transition-all hover:border-border/80 hover:shadow-lg hover:shadow-primary/10">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Today&apos;s Revenue</CardTitle>
+                <div className="rounded-lg bg-muted/60 p-2 transition-colors group-hover:bg-muted">
+                  <TrendingUp className="h-5 w-5 text-foreground/70" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">${stats.todayRevenue.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground">
+                <div className="text-3xl font-semibold tracking-tight">${stats.todayRevenue.toFixed(2)}</div>
+                <p className="mt-2 text-xs text-muted-foreground">
                   Updated in real-time
                 </p>
               </CardContent>
             </Card>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            {/* Recent Orders */}
-            <Card className="col-span-4">
+          <div className="grid gap-5 lg:grid-cols-3">
+            <Card className="border border-border/60 shadow-md shadow-primary/5 lg:col-span-2">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>Recent Orders</CardTitle>
-                    <CardDescription>Latest orders from your restaurant</CardDescription>
+                    <CardTitle className="text-lg">Recent Orders</CardTitle>
+                    <CardDescription className="mt-1">Latest orders from your restaurant</CardDescription>
                   </div>
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={loadDashboardData}
                     disabled={isLoading}
+                    className="h-9 w-9 rounded-full border border-border/60"
                   >
                     <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
                   </Button>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {recentOrders.map((order) => (
-                    <div key={order.id} className="flex items-center space-x-4">
-                      <div className="flex-shrink-0">
-                        {getStatusIcon(order.status)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">
-                          Order #{order.orderNumber || order.id}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {order.customerName} • {format(new Date(order.createdAt || ''), 'MMM dd, HH:mm')}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium">${(order.totalAmount || 0).toFixed(2)}</p>
-                        <Badge variant={getStatusColor(order.status) as 'default' | 'secondary' | 'destructive' | 'outline'}>
-                          {order.status}
-                        </Badge>
-                      </div>
+                <div className="space-y-5">
+                  {recentOrders.length === 0 ? (
+                    <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 p-10 text-center text-sm text-muted-foreground">
+                      No recent orders available yet.
                     </div>
-                  ))}
+                  ) : (
+                    recentOrders.map((order) => (
+                      <div key={order.id} className="flex items-start gap-4 rounded-lg border border-border/40 bg-muted/20 p-4 transition-colors hover:bg-muted/40">
+                        <div className="mt-0.5 rounded-full bg-muted p-2">
+                          {getStatusIcon(order.status)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">
+                            Order #{order.orderNumber || order.id}
+                          </p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {order.customerName}
+                          </p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {format(new Date(order.createdAt || ''), 'MMM dd, HH:mm')}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          <p className="text-sm font-semibold">${(order.totalAmount || 0).toFixed(2)}</p>
+                          <Badge variant={getStatusColor(order.status) as 'default' | 'secondary' | 'destructive' | 'outline'}>
+                            {order.status.replace('_', ' ')}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
 
-            {/* Live Notifications */}
-            <Card className="col-span-3">
+            <Card className="border border-border/60 shadow-md shadow-primary/5">
               <CardHeader>
-                <CardTitle>Live Notifications</CardTitle>
-                <CardDescription>Real-time updates via WebSocket</CardDescription>
+                <CardTitle className="text-lg">Live Notifications</CardTitle>
+                <CardDescription className="mt-1">Real-time updates via WebSocket</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {notifications.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">
+                    <p className="text-sm text-muted-foreground text-center py-8">
                       No new notifications
                     </p>
                   ) : (
                     notifications.map((notification, index) => (
-                      <div key={index} className="space-y-1">
+                      <div key={index} className="rounded-lg border border-border/40 bg-muted/20 p-3">
                         <p className="text-sm font-medium">{notification.message}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="mt-1 text-xs text-muted-foreground">
                           {format(new Date(notification.timestamp), 'HH:mm:ss')}
                         </p>
                       </div>
@@ -314,35 +324,40 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          {/* Quick Stats */}
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
+          <div className="grid gap-5 md:grid-cols-3">
+            <Card className="border border-border/60 shadow-md shadow-primary/5">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Users</CardTitle>
+                <div className="rounded-lg bg-muted/60 p-2">
+                  <Users className="h-5 w-5 text-foreground/70" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.totalUsers}</div>
+                <div className="text-3xl font-semibold tracking-tight">{stats.totalUsers}</div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Products</CardTitle>
-                <Package className="h-4 w-4 text-muted-foreground" />
+            <Card className="border border-border/60 shadow-md shadow-primary/5">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Products</CardTitle>
+                <div className="rounded-lg bg-muted/60 p-2">
+                  <Package className="h-5 w-5 text-foreground/70" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.totalProducts}</div>
+                <div className="text-3xl font-semibold tracking-tight">{stats.totalProducts}</div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-                <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+            <Card className="border border-border/60 shadow-md shadow-primary/5">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Orders</CardTitle>
+                <div className="rounded-lg bg-muted/60 p-2">
+                  <ShoppingCart className="h-5 w-5 text-foreground/70" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.totalOrders}</div>
+                <div className="text-3xl font-semibold tracking-tight">{stats.totalOrders}</div>
               </CardContent>
             </Card>
           </div>
