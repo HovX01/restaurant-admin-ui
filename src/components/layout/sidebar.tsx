@@ -15,16 +15,10 @@ import {
   Package,
   ShoppingCart,
   Truck,
-  ChefHat,
   Menu,
   LogOut,
-  Settings,
   BarChart,
   Tag,
-  TrendingUp,
-  Archive,
-  UserCheck,
-  Bell,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -91,23 +85,28 @@ export function Sidebar() {
   });
 
   const SidebarContent = () => (
-    <>
-      <div className="px-3 py-2">
-        <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight">
-          Restaurant Admin
-        </h2>
-        <div className="px-4 py-2 mb-4">
-          <div className="flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold">
+    <div className="flex h-full flex-col">
+      <div className="flex-1 px-5 py-6">
+        <div className="mb-8">
+          <h2 className="px-3 text-xl font-semibold tracking-tight">
+            Restaurant
+          </h2>
+          <p className="mt-1 px-3 text-xs text-muted-foreground">Admin Panel</p>
+        </div>
+
+        <div className="mb-8 rounded-lg border border-border/60 bg-muted/30 p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-semibold">
               {user?.username?.charAt(0).toUpperCase()}
             </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium">{user?.username}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{user?.username}</p>
               <p className="text-xs text-muted-foreground">{user?.role}</p>
             </div>
           </div>
         </div>
-        <div className="space-y-1">
+
+        <nav className="space-y-1">
           {filteredMenuItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -121,14 +120,16 @@ export function Sidebar() {
                 <Button
                   variant={isActive ? 'secondary' : 'ghost'}
                   className={cn(
-                    'w-full justify-start',
-                    isActive && 'bg-secondary'
+                    'h-11 w-full justify-start gap-3 px-3 transition-all',
+                    isActive 
+                      ? 'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90' 
+                      : 'hover:bg-muted/60'
                   )}
                 >
-                  <Icon className="mr-2 h-4 w-4" />
-                  {item.title}
+                  <Icon className="h-5 w-5" />
+                  <span className="text-sm font-medium">{item.title}</span>
                   {item.badge && (
-                    <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
+                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/20 px-1.5 text-xs font-medium">
                       {item.badge}
                     </span>
                   )}
@@ -136,19 +137,20 @@ export function Sidebar() {
               </Link>
             );
           })}
-        </div>
+        </nav>
       </div>
-      <div className="mt-auto p-3">
+
+      <div className="border-t border-border/60 p-5">
         <Button
           variant="ghost"
-          className="w-full justify-start text-destructive hover:text-destructive"
+          className="h-11 w-full justify-start gap-3 px-3 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
           onClick={logout}
         >
-          <LogOut className="mr-2 h-4 w-4" />
-          Logout
+          <LogOut className="h-5 w-5" />
+          <span className="text-sm font-medium">Logout</span>
         </Button>
       </div>
-    </>
+    </div>
   );
 
   return (
