@@ -31,7 +31,7 @@ export default function LoginPage() {
       await login(formData);
     } catch (err) {
       const error = err as Error;
-      setError(error.message || 'Login failed');
+      setError(error.message);
     }
   };
 
@@ -50,7 +50,7 @@ export default function LoginPage() {
         await login(creds);
       } catch (err) {
         const error = err as Error;
-        setError(error.message || 'Login failed');
+        setError(error.message);
       }
     }
   };

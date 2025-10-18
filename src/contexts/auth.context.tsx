@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { apiService, setAuthErrorHandler, setUnauthorizedHandler } from '@/services/api.service';
 import { websocketService } from '@/services/websocket.service';
 import { LoginRequest, RegisterRequest, User, UserRole } from '@/types';
+import { getErrorMessage } from '@/lib/utils';
 
 interface AuthContextType {
   user: User | null;
@@ -70,11 +71,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         toast.success('Login successful!');
         router.push('/dashboard');
       } else {
-        toast.error(response.message || response.error || 'Login failed');
+        const errorMsg = response.error || response.message || 'Login failed';
+        throw new Error(errorMsg);
       }
     } catch (error) {
-      const err = error as Error;
-      toast.error(err.message || 'Login failed');
+      const errorMsg = getErrorMessage(error);
+      throw new Error(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -89,11 +91,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         toast.success('Registration successful! Please login.');
         router.push('/login');
       } else {
-        toast.error(response.message || 'Registration failed');
+        const errorMsg = response.error || response.message || 'Registration failed';
+        throw new Error(errorMsg);
       }
     } catch (error) {
-      const err = error as Error;
-      toast.error(err.message || 'Registration failed');
+      const errorMsg = getErrorMessage(error);
+      throw new Error(errorMsg);
     } finally {
       setIsLoading(false);
     }
