@@ -61,6 +61,7 @@ import { toast } from 'sonner';
 import { apiService } from '@/services/api.service';
 import { Product, Category } from '@/types';
 import { format } from 'date-fns';
+import { PageSkeleton } from '@/components/ui/loading';
 
 interface ProductFormData {
   name: string;
@@ -75,6 +76,7 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -109,6 +111,7 @@ export default function ProductsPage() {
 
   const loadData = async () => {
     try {
+      setIsLoading(true);
       const [productsResponse, categoriesResponse] = await Promise.all([
         apiService.getProducts({ page: 0, size: 100 }),
         apiService.getCategories({ page: 0, size: 100 }),
@@ -121,6 +124,8 @@ export default function ProductsPage() {
      } catch (error) {
        console.error('Failed to load data:', error);
        toast.error('Failed to load data');
+     } finally {
+       setIsLoading(false);
      }
    };
 
@@ -192,7 +197,7 @@ export default function ProductsPage() {
       accessorKey: 'category.name',
       header: 'Category',
       cell: ({ getValue }) => {
-        const value = getValue<String>();
+        const value = getValue<string>();
         return (
           <Badge variant="outline">
             { value }
@@ -281,14 +286,17 @@ export default function ProductsPage() {
   return (
     <ProtectedRoute requiredRoles={['ADMIN', 'MANAGER']}>
       <AdminLayout>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Products</h1>
-              <p className="text-muted-foreground">
-                Manage your restaurant menu items and pricing
-              </p>
-            </div>
+        {isLoading ? (
+          <PageSkeleton />
+        ) : (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">Products</h1>
+                <p className="text-muted-foreground">
+                  Manage your restaurant menu items and pricing
+                </p>
+              </div>
             <div className="flex space-x-2">
               <Popover>
                 <PopoverTrigger asChild>
@@ -501,6 +509,7 @@ export default function ProductsPage() {
             </CardContent>
           </Card>
         </div>
+        )}
       </AdminLayout>
     </ProtectedRoute>
   );

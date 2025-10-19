@@ -18,15 +18,14 @@ import {
   Clock,
   RefreshCw,
   Download,
-  Calendar,
   Target,
-  Percent,
   Star,
   Package
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiService } from '@/services/api.service';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
+import { PageSkeleton } from '@/components/ui/loading';
 
 interface AnalyticsData {
   revenue: {
@@ -76,6 +75,7 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     loadAnalyticsData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period, startDate, endDate]);
 
   const loadAnalyticsData = async () => {
@@ -145,9 +145,7 @@ export default function AnalyticsPage() {
     return (
       <ProtectedRoute requiredRoles={['ADMIN', 'MANAGER']}>
         <AdminLayout>
-          <div className="flex items-center justify-center min-h-[400px]">
-            <RefreshCw className="h-8 w-8 animate-spin" />
-          </div>
+          <PageSkeleton />
         </AdminLayout>
       </ProtectedRoute>
     );

@@ -6,7 +6,6 @@ import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { 
   ChefHat, 
   Clock, 
@@ -21,6 +20,7 @@ import { apiService } from '@/services/api.service';
 import { websocketService } from '@/services/websocket.service';
 import { Order, OrderStatus, Product, WebSocketMessage } from '@/types';
 import { format } from 'date-fns';
+import { PageSkeleton } from '@/components/ui/loading';
 
 export default function KitchenPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -37,6 +37,7 @@ export default function KitchenPage() {
       websocketService.off('/topic/orders', handleOrderUpdate);
       websocketService.off('/topic/kitchen', handleKitchenUpdate);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadOrders = async () => {
@@ -77,7 +78,7 @@ export default function KitchenPage() {
     }
   };
 
-  const handleKitchenUpdate = (message: WebSocketMessage) => {
+  const handleKitchenUpdate = () => {
     loadOrders();
   };
 
@@ -135,17 +136,20 @@ export default function KitchenPage() {
   return (
     <ProtectedRoute requiredRoles={['ADMIN', 'MANAGER', 'KITCHEN_STAFF']}>
       <AdminLayout>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-                <ChefHat className="h-8 w-8" />
-                Kitchen Dashboard
-              </h1>
-              <p className="text-muted-foreground">
-                Manage order preparation and kitchen workflow
-              </p>
-            </div>
+        {loading ? (
+          <PageSkeleton />
+        ) : (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+                  <ChefHat className="h-8 w-8" />
+                  Kitchen Dashboard
+                </h1>
+                <p className="text-muted-foreground">
+                  Manage order preparation and kitchen workflow
+                </p>
+              </div>
             <Button onClick={handleRefresh} disabled={refreshing}>
               <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
               Refresh Orders
@@ -366,12 +370,8 @@ export default function KitchenPage() {
             </div>
           </div>
 
-          {loading && (
-            <div className="flex items-center justify-center py-12">
-              <RefreshCw className="h-8 w-8 animate-spin" />
-            </div>
-          )}
         </div>
+        )}
       </AdminLayout>
     </ProtectedRoute>
   );

@@ -35,7 +35,6 @@ import { ColumnDef } from '@tanstack/react-table';
 import { 
   MoreHorizontal, 
   Plus, 
-  Edit, 
   Eye,
   ShoppingCart,
   Clock,
@@ -53,8 +52,9 @@ import {
 import { useForm, useFieldArray } from 'react-hook-form';
 import { toast } from 'sonner';
 import { apiService } from '@/services/api.service';
-import { Order, OrderStatus, Product, OrderItem } from '@/types';
+import { Order, OrderStatus, Product } from '@/types';
 import { format } from 'date-fns';
+import { PageSkeleton } from '@/components/ui/loading';
 
 interface OrderFormData {
   customerName: string;
@@ -71,7 +71,7 @@ interface OrderFormData {
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
@@ -98,7 +98,7 @@ export default function OrdersPage() {
 
   const loadData = async () => {
     try {
-
+      setIsLoading(true);
       const [ordersResponse, productsResponse] = await Promise.all([
         apiService.getOrders({ page: 0, size: 100 }),
         apiService.getProducts({ page: 0, size: 100 }),
@@ -110,6 +110,8 @@ export default function OrdersPage() {
     } catch (error) {
       console.error('Failed to load data:', error);
       toast.error('Failed to load data');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -320,14 +322,17 @@ export default function OrdersPage() {
   return (
     <ProtectedRoute requiredRoles={['ADMIN', 'MANAGER', 'KITCHEN_STAFF']}>
       <AdminLayout>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Orders</h1>
-              <p className="text-muted-foreground">
-                Manage customer orders and track their status
-              </p>
-            </div>
+        {isLoading ? (
+          <PageSkeleton />
+        ) : (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">Orders</h1>
+                <p className="text-muted-foreground">
+                  Manage customer orders and track their status
+                </p>
+              </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button onClick={() => resetForm()}>
@@ -595,6 +600,7 @@ export default function OrdersPage() {
             </CardContent>
           </Card>
         </div>
+        )}
       </AdminLayout>
     </ProtectedRoute>
   );
