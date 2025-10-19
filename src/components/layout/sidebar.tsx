@@ -10,21 +10,27 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import {
+  Sidebar as UISidebar,
+  SidebarHeader,
+  SidebarContent as UISidebarContent,
+  SidebarFooter,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarTrigger,
+  SidebarProvider,
+  useSidebar,
+} from '@/components/ui/sidebar';
+import {
   Home,
   Users,
   Package,
   ShoppingCart,
   Truck,
-  ChefHat,
   Menu,
   LogOut,
-  Settings,
   BarChart,
   Tag,
-  TrendingUp,
-  Archive,
-  UserCheck,
-  Bell,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -90,55 +96,108 @@ export function Sidebar() {
     return canAccess(item.roles);
   });
 
-  const SidebarContent = () => (
-    <>
-      <div className="px-3 py-2">
-        <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight">
-          Restaurant Admin
-        </h2>
-        <div className="px-4 py-2 mb-4">
-          <div className="flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold">
-              {user?.username?.charAt(0).toUpperCase()}
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium">{user?.username}</p>
-              <p className="text-xs text-muted-foreground">{user?.role}</p>
+  const DesktopSidebarContent = () => {
+    const { collapsed } = useSidebar();
+    return (
+      <>
+        <SidebarHeader>
+          <div className={cn('flex items-center', collapsed ? 'justify-center' : 'justify-between px-2')}>
+            {!collapsed && (
+              <h2 className="text-sm font-semibold tracking-tight">Restaurant Admin</h2>
+            )}
+            <SidebarTrigger className={cn('hidden md:inline-flex', collapsed ? '' : 'ml-2')} />
+          </div>
+          <div className="px-2 py-3">
+            <div className={cn('flex items-center', collapsed ? 'justify-center' : 'space-x-2')}>
+              <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold">
+                {user?.username?.charAt(0).toUpperCase()}
+              </div>
+              {!collapsed && (
+                <div className="flex-1">
+                  <p className="text-sm font-medium leading-none">{user?.username}</p>
+                  <p className="text-xs text-muted-foreground">{user?.role}</p>
+                </div>
+              )}
             </div>
           </div>
-        </div>
-        <div className="space-y-1">
-          {filteredMenuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-            
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setIsMobileOpen(false)}
-              >
-                <Button
-                  variant={isActive ? 'secondary' : 'ghost'}
-                  className={cn(
-                    'w-full justify-start',
-                    isActive && 'bg-secondary'
-                  )}
-                >
-                  <Icon className="mr-2 h-4 w-4" />
-                  {item.title}
-                  {item.badge && (
-                    <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
-                      {item.badge}
-                    </span>
-                  )}
-                </Button>
-              </Link>
-            );
-          })}
+        </SidebarHeader>
+        <UISidebarContent>
+          <SidebarMenu>
+            {filteredMenuItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              return (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton asChild isActive={isActive} title={item.title}>
+                    <Link href={item.href} onClick={() => setIsMobileOpen(false)}>
+                      <Icon className={cn('h-4 w-4', !collapsed && 'mr-2')} />
+                      {!collapsed && item.title}
+                      {!collapsed && item.badge && (
+                        <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )
+            })}
+          </SidebarMenu>
+        </UISidebarContent>
+        <SidebarFooter>
+          <Button
+            variant="ghost"
+            className={cn('w-full', 'justify-start text-destructive hover:text-destructive')}
+            onClick={logout}
+            title="Logout"
+          >
+            <LogOut className={cn('h-4 w-4', 'mr-2')} />
+            Logout
+          </Button>
+        </SidebarFooter>
+      </>
+    );
+  }
+
+  const MobileSidebarContent = () => (
+    <div className="px-2 py-2">
+      <div className="px-2 py-1">
+        <h2 className="text-sm font-semibold tracking-tight">Restaurant Admin</h2>
+      </div>
+      <div className="px-2 py-3">
+        <div className="flex items-center space-x-2">
+          <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold">
+            {user?.username?.charAt(0).toUpperCase()}
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium leading-none">{user?.username}</p>
+            <p className="text-xs text-muted-foreground">{user?.role}</p>
+          </div>
         </div>
       </div>
-      <div className="mt-auto p-3">
+      <div className="space-y-1">
+        {filteredMenuItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          return (
+            <Link key={item.href} href={item.href} onClick={() => setIsMobileOpen(false)} title={item.title}>
+              <Button
+                variant={isActive ? 'secondary' : 'ghost'}
+                className={cn('w-full justify-start', isActive && 'bg-secondary')}
+              >
+                <Icon className="mr-2 h-4 w-4" />
+                {item.title}
+                {item.badge && (
+                  <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
+                    {item.badge}
+                  </span>
+                )}
+              </Button>
+            </Link>
+          );
+        })}
+      </div>
+      <div className="mt-4">
         <Button
           variant="ghost"
           className="w-full justify-start text-destructive hover:text-destructive"
@@ -148,17 +207,17 @@ export function Sidebar() {
           Logout
         </Button>
       </div>
-    </>
+    </div>
   );
 
   return (
     <>
-      {/* Desktop Sidebar */}
-      <div className="hidden md:flex h-full w-64 flex-col border-r bg-background">
-        <ScrollArea className="flex-1">
-          <SidebarContent />
-        </ScrollArea>
-      </div>
+      <SidebarProvider>
+        {/* Desktop Sidebar */}
+        <UISidebar>
+          <DesktopSidebarContent />
+        </UISidebar>
+      </SidebarProvider>
 
       {/* Mobile Sidebar */}
       <div className="md:hidden">
@@ -170,7 +229,7 @@ export function Sidebar() {
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-64">
             <ScrollArea className="h-full">
-              <SidebarContent />
+              <MobileSidebarContent />
             </ScrollArea>
           </SheetContent>
         </Sheet>
