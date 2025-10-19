@@ -12,7 +12,8 @@ import {
   CheckCircle, 
   AlertCircle,
   RefreshCw,
-  Timer
+  Timer,
+  Utensils
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiService } from '@/services/api.service';
