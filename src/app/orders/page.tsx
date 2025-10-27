@@ -32,17 +32,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ColumnDef } from '@tanstack/react-table';
-import { 
-  MoreHorizontal, 
-  Plus, 
-  Edit, 
+import {
+  MoreHorizontal,
+  Plus,
   Eye,
   ShoppingCart,
   Clock,
   CheckCircle,
   XCircle,
   AlertCircle,
-  Truck 
+  Truck
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -53,8 +52,15 @@ import {
 import { useForm, useFieldArray } from 'react-hook-form';
 import { toast } from 'sonner';
 import { apiService } from '@/services/api.service';
-import { Order, OrderStatus, Product, OrderItem } from '@/types';
+import { Order, OrderStatus, Product } from '@/types';
 import { format } from 'date-fns';
+import { 
+  parseCustomerDetails, 
+  getOrderItems, 
+  getTotalPrice, 
+  getCustomerName,
+  getProductNameFromItem 
+} from '@/lib/order-utils';
 
 interface OrderFormData {
   customerName: string;
@@ -204,11 +210,6 @@ export default function OrdersPage() {
     }
   };
 
-  const getProductName = (productId: number) => {
-    const product = products.find(p => p.id === productId);
-    return product?.name || 'Unknown Product';
-  };
-
   const columns: ColumnDef<Order>[] = [
     {
       accessorKey: 'id',
@@ -216,15 +217,17 @@ export default function OrdersPage() {
       cell: ({ row }) => `#${row.getValue('id')}`,
     },
     {
-      accessorKey: 'customerName',
+      id: 'customerName',
+      accessorFn: (row) => getCustomerName(row),
       header: 'Customer',
+      cell: ({ row }) => getCustomerName(row.original),
     },
     {
       accessorKey: 'totalAmount',
       header: 'Total',
       cell: ({ row }) => {
-        const amount = row.getValue('totalAmount') as number;
-        return `$${amount ? amount.toFixed(2) : 'N/A'}`;
+        const amount = getTotalPrice(row.original);
+        return `${amount.toFixed(2)}`;
       },
     },
     {
@@ -517,64 +520,131 @@ export default function OrdersPage() {
 
           {/* Order Details View Dialog */}
           <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Order Details</DialogTitle>
               </DialogHeader>
-              {selectedOrder && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="font-semibold">Order #</h4>
-                      <p>{selectedOrder.id}</p>
+              {selectedOrder && (() => {
+                const customerInfo = selectedOrder.customerDetails 
+                  ? parseCustomerDetails(selectedOrder.customerDetails)
+                  : {
+                      name: selectedOrder.customerName || 'N/A',
+                      phone: selectedOrder.customerPhone || '',
+                      address: selectedOrder.customerAddress || '',
+                      notes: selectedOrder.notes || '',
+                    };
+                const items = getOrderItems(selectedOrder);
+                const totalPrice = getTotalPrice(selectedOrder);
+                
+                return (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <h4 className="font-semibold text-sm text-muted-foreground">Order #</h4>
+                        <p className="text-lg">#{selectedOrder.id}</p>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-sm text-muted-foreground">Status</h4>
+                        <Badge variant={getStatusColor(selectedOrder.status)} className="mt-1">
+                          {selectedOrder.status.replace('_', ' ')}
+                        </Badge>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-semibold">Status</h4>
-                      <Badge variant={getStatusColor(selectedOrder.status)}>
-                        {selectedOrder.status.replace('_', ' ')}
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-semibold">Customer Information</h4>
-                    <p>{selectedOrder.customerName}</p>
-                    {selectedOrder.customerPhone && <p>{selectedOrder.customerPhone}</p>}
-                    {selectedOrder.customerAddress && <p>{selectedOrder.customerAddress}</p>}
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-semibold">Order Items</h4>
-                    <div className="space-y-2">
-                      {selectedOrder.items?.map((item, index) => (
-                        <div key={index} className="flex justify-between">
-                          <span>{getProductName(item.productId)} x {item.quantity}</span>
-                          <span>${(item.price * item.quantity).toFixed(2)}</span>
+
+                    {selectedOrder.orderType && (
+                      <div>
+                        <h4 className="font-semibold text-sm text-muted-foreground">Order Type</h4>
+                        <p className="capitalize">{selectedOrder.orderType.toLowerCase().replace('_', ' ')}</p>
+                      </div>
+                    )}
+                    
+                    <div className="border-t pt-4">
+                      <h4 className="font-semibold mb-2">Customer Information</h4>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex gap-2">
+                          <span className="text-muted-foreground min-w-16">Name:</span>
+                          <span className="font-medium">{customerInfo.name}</span>
                         </div>
-                      ))}
+                        {customerInfo.phone && (
+                          <div className="flex gap-2">
+                            <span className="text-muted-foreground min-w-16">Phone:</span>
+                            <span>{customerInfo.phone}</span>
+                          </div>
+                        )}
+                        {customerInfo.address && (
+                          <div className="flex gap-2">
+                            <span className="text-muted-foreground min-w-16">Address:</span>
+                            <span>{customerInfo.address}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="border-t pt-4">
+                      <h4 className="font-semibold mb-3">Order Items</h4>
+                      <div className="space-y-3">
+                        {items.map((item, index) => {
+                          const productName = getProductNameFromItem(item);
+                          const itemTotal = item.price * item.quantity;
+                          
+                          return (
+                            <div key={index} className="border rounded-lg p-3">
+                              <div className="flex justify-between items-start mb-1">
+                                <span className="font-medium">{productName}</span>
+                                <span className="font-semibold">${itemTotal.toFixed(2)}</span>
+                              </div>
+                              <div className="flex justify-between text-sm text-muted-foreground">
+                                <span>Quantity: {item.quantity}</span>
+                                <span>Unit Price: ${item.price.toFixed(2)}</span>
+                              </div>
+                              {item.product?.description && (
+                                <p className="text-xs text-muted-foreground mt-1">{item.product.description}</p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    
+                    <div className="border-t pt-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-lg font-semibold">Total</span>
+                        <span className="text-2xl font-bold">${totalPrice.toFixed(2)}</span>
+                      </div>
+                    </div>
+                    
+                    {customerInfo.notes && (
+                      <div className="border-t pt-4">
+                        <h4 className="font-semibold mb-2">Notes</h4>
+                        <p className="text-sm bg-muted p-3 rounded-lg">{customerInfo.notes}</p>
+                      </div>
+                    )}
+
+                    {selectedOrder.delivery && (
+                      <div className="border-t pt-4">
+                        <h4 className="font-semibold mb-2">Delivery Information</h4>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex gap-2">
+                            <span className="text-muted-foreground min-w-24">Status:</span>
+                            <Badge variant="outline">{selectedOrder.delivery.status}</Badge>
+                          </div>
+                          {selectedOrder.delivery.driver && (
+                            <div className="flex gap-2">
+                              <span className="text-muted-foreground min-w-24">Driver:</span>
+                              <span>{selectedOrder.delivery.driver.firstName} {selectedOrder.delivery.driver.lastName}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="border-t pt-4">
+                      <h4 className="font-semibold text-sm text-muted-foreground">Created</h4>
+                      <p className="text-sm">{selectedOrder.createdAt ? format(new Date(selectedOrder.createdAt), 'PPP p') : 'N/A'}</p>
                     </div>
                   </div>
-                  
-                  <div className="border-t pt-2">
-                    <div className="flex justify-between font-semibold">
-                      <span>Total</span>
-                      <span>${(selectedOrder.totalAmount || 0).toFixed(2)}</span>
-                    </div>
-                  </div>
-                  
-                  {selectedOrder.notes && (
-                    <div>
-                      <h4 className="font-semibold">Notes</h4>
-                      <p>{selectedOrder.notes}</p>
-                    </div>
-                  )}
-                  
-                  <div>
-                    <h4 className="font-semibold">Created</h4>
-                    <p>{selectedOrder.createdAt ? format(new Date(selectedOrder.createdAt), 'PPP p') : 'N/A'}</p>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
             </DialogContent>
           </Dialog>
 

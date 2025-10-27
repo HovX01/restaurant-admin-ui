@@ -6,9 +6,8 @@ import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -22,23 +21,21 @@ import {
   Phone,
   User,
   RefreshCw,
-  Plus,
   Eye,
-  Edit2,
   AlertCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiService } from '@/services/api.service';
 import { websocketService } from '@/services/websocket.service';
-import { Order, OrderStatus, User as UserType, WebSocketMessage, DeliveryDriver } from '@/types';
+import { Order, OrderStatus, User as UserType, WebSocketMessage } from '@/types';
 import { format } from 'date-fns';
 import { DataTable } from '@/components/ui/data-table';
 import { ColumnDef } from '@tanstack/react-table';
+import { getCustomerName, getTotalPrice, getOrderItems, parseCustomerDetails, getProductNameFromItem } from '@/lib/order-utils';
 
 export default function DeliveriesPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [drivers, setDrivers] = useState<UserType[]>([]);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
@@ -47,27 +44,30 @@ export default function DeliveriesPage() {
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
+    const setupListeners = () => {
+      websocketService.on('/topic/deliveries', handleDeliveryUpdate);
+      websocketService.on('/topic/orders', handleOrderUpdate);
+    };
+
     loadDeliveryOrders();
     loadDrivers();
-    setupWebSocketListeners();
+    setupListeners();
 
     return () => {
       websocketService.off('/topic/deliveries', handleDeliveryUpdate);
       websocketService.off('/topic/orders', handleOrderUpdate);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadDeliveryOrders = async () => {
     try {
-      setLoading(true);
       const response = await apiService.getDeliveryOrders({ page: 0, size: 100 });
       const data = response.data.content || [];
       setOrders(data);
     } catch (error) {
       console.error('Failed to load delivery orders:', error);
       setOrders([]);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -82,12 +82,7 @@ export default function DeliveriesPage() {
     }
   };
 
-  const setupWebSocketListeners = () => {
-    websocketService.on('/topic/deliveries', handleDeliveryUpdate);
-    websocketService.on('/topic/orders', handleOrderUpdate);
-  };
-
-  const handleDeliveryUpdate = (message: WebSocketMessage) => {
+  const handleDeliveryUpdate = () => {
     loadDeliveryOrders();
     loadDrivers();
   };
@@ -178,27 +173,37 @@ export default function DeliveriesPage() {
     },
     {
       header: 'Customer',
-      accessorKey: 'customerName',
+      id: 'customerName',
+      accessorFn: (row) => getCustomerName(row),
+      cell: ({ row }) => getCustomerName(row.original),
     },
     {
       header: 'Address',
       accessorKey: 'deliveryAddress',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-muted-foreground" />
-          <span className="max-w-xs truncate">{row.original.deliveryAddress}</span>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const customerInfo = parseCustomerDetails(row.original.customerDetails);
+        const address = row.original.deliveryAddress || row.original.customerAddress || customerInfo.address;
+        return (
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-muted-foreground" />
+            <span className="max-w-xs truncate">{address || 'N/A'}</span>
+          </div>
+        );
+      },
     },
     {
       header: 'Phone',
       accessorKey: 'customerPhone',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <Phone className="h-4 w-4 text-muted-foreground" />
-          {row.original.customerPhone}
-        </div>
-      ),
+      cell: ({ row }) => {
+        const customerInfo = parseCustomerDetails(row.original.customerDetails);
+        const phone = row.original.customerPhone || customerInfo.phone;
+        return (
+          <div className="flex items-center gap-2">
+            <Phone className="h-4 w-4 text-muted-foreground" />
+            {phone || 'N/A'}
+          </div>
+        );
+      },
     },
     {
       header: 'Status',
@@ -234,7 +239,7 @@ export default function DeliveriesPage() {
     {
       header: 'Total',
       accessorKey: 'totalAmount',
-      cell: ({ row }) => `$${row.original.totalAmount?.toFixed(2) || '0.00'}`,
+      cell: ({ row }) => `${getTotalPrice(row.original).toFixed(2)}`,
     },
     {
       header: 'Actions',
@@ -460,17 +465,25 @@ export default function DeliveriesPage() {
                   />
                 </div>
 
-                {selectedOrder && (
-                  <div className="p-4 bg-muted rounded-lg">
-                    <h4 className="font-medium mb-2">Order Details</h4>
-                    <div className="space-y-1 text-sm">
-                      <div>Customer: {selectedOrder.customerName}</div>
-                      <div>Phone: {selectedOrder.customerPhone}</div>
-                      <div>Address: {selectedOrder.deliveryAddress}</div>
-                      <div>Total: ${selectedOrder.totalAmount?.toFixed(2) || '0.00'}</div>
+                {selectedOrder && (() => {
+                  const customerInfo = parseCustomerDetails(selectedOrder.customerDetails);
+                  const customerName = getCustomerName(selectedOrder);
+                  const phone = selectedOrder.customerPhone || customerInfo.phone;
+                  const address = selectedOrder.deliveryAddress || selectedOrder.customerAddress || customerInfo.address;
+                  const total = getTotalPrice(selectedOrder);
+                  
+                  return (
+                    <div className="p-4 bg-muted rounded-lg">
+                      <h4 className="font-medium mb-2">Order Details</h4>
+                      <div className="space-y-1 text-sm">
+                        <div>Customer: {customerName}</div>
+                        <div>Phone: {phone || 'N/A'}</div>
+                        <div>Address: {address || 'N/A'}</div>
+                        <div>Total: ${total.toFixed(2)}</div>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
 
               <DialogFooter>
@@ -494,74 +507,84 @@ export default function DeliveriesPage() {
                 </DialogDescription>
               </DialogHeader>
               
-              {selectedOrder && (
-                <div className="space-y-4">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div>
-                      <h4 className="font-medium mb-2">Customer Information</h4>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-muted-foreground" />
-                          {selectedOrder.customerName}
+              {selectedOrder && (() => {
+                const customerInfo = parseCustomerDetails(selectedOrder.customerDetails);
+                const customerName = getCustomerName(selectedOrder);
+                const phone = selectedOrder.customerPhone || customerInfo.phone;
+                const address = selectedOrder.deliveryAddress || selectedOrder.customerAddress || customerInfo.address;
+                const items = getOrderItems(selectedOrder);
+                const total = getTotalPrice(selectedOrder);
+                const notes = customerInfo.notes || selectedOrder.notes;
+                
+                return (
+                  <div className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <h4 className="font-medium mb-2">Customer Information</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            {customerName}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Phone className="h-4 w-4 text-muted-foreground" />
+                            {phone || 'N/A'}
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                            {address || 'N/A'}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Phone className="h-4 w-4 text-muted-foreground" />
-                          {selectedOrder.customerPhone}
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                          {selectedOrder.deliveryAddress}
+                      </div>
+
+                      <div>
+                        <h4 className="font-medium mb-2">Order Status</h4>
+                        <div className="space-y-2">
+                          <Badge variant={getStatusColor(selectedOrder.status)} className="flex items-center gap-1 w-fit">
+                            {getStatusIcon(selectedOrder.status)}
+                            {selectedOrder.status.replace('_', ' ')}
+                          </Badge>
+                          {selectedOrder.assignedDriverName && (
+                            <div className="text-sm">
+                              <strong>Driver:</strong> {selectedOrder.assignedDriverName}
+                            </div>
+                          )}
+                          {selectedOrder.createdAt && (
+                            <div className="text-sm text-muted-foreground">
+                              Ordered: {format(new Date(selectedOrder.createdAt), 'MMM dd, yyyy HH:mm')}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
 
                     <div>
-                      <h4 className="font-medium mb-2">Order Status</h4>
+                      <h4 className="font-medium mb-2">Order Items</h4>
                       <div className="space-y-2">
-                        <Badge variant={getStatusColor(selectedOrder.status)} className="flex items-center gap-1 w-fit">
-                          {getStatusIcon(selectedOrder.status)}
-                          {selectedOrder.status.replace('_', ' ')}
-                        </Badge>
-                        {selectedOrder.assignedDriverName && (
-                          <div className="text-sm">
-                            <strong>Driver:</strong> {selectedOrder.assignedDriverName}
+                        {items.map((item, index) => (
+                          <div key={index} className="flex justify-between items-center p-2 bg-muted rounded">
+                            <span>{getProductNameFromItem(item)} x {item.quantity}</span>
+                            <span>${(item.price * item.quantity).toFixed(2)}</span>
                           </div>
-                        )}
-                        {selectedOrder.createdAt && (
-                          <div className="text-sm text-muted-foreground">
-                            Ordered: {format(new Date(selectedOrder.createdAt), 'MMM dd, yyyy HH:mm')}
-                          </div>
-                        )}
+                        ))}
+                      </div>
+                      <div className="mt-2 pt-2 border-t flex justify-between font-medium">
+                        <span>Total:</span>
+                        <span>${total.toFixed(2)}</span>
                       </div>
                     </div>
-                  </div>
 
-                  <div>
-                    <h4 className="font-medium mb-2">Order Items</h4>
-                    <div className="space-y-2">
-                      {selectedOrder.items?.map((item, index) => (
-                        <div key={index} className="flex justify-between items-center p-2 bg-muted rounded">
-                          <span>{item.productName} x {item.quantity}</span>
-                          <span>${(item.price * item.quantity).toFixed(2)}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="mt-2 pt-2 border-t flex justify-between font-medium">
-                      <span>Total:</span>
-                      <span>${selectedOrder.totalAmount?.toFixed(2) || '0.00'}</span>
-                    </div>
+                    {notes && (
+                      <div>
+                        <h4 className="font-medium mb-2">Special Notes</h4>
+                        <p className="text-sm bg-yellow-50 border border-yellow-200 rounded p-3">
+                          {notes}
+                        </p>
+                      </div>
+                    )}
                   </div>
-
-                  {selectedOrder.notes && (
-                    <div>
-                      <h4 className="font-medium mb-2">Special Notes</h4>
-                      <p className="text-sm bg-yellow-50 border border-yellow-200 rounded p-3">
-                        {selectedOrder.notes}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
+                );
+              })()}
 
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>

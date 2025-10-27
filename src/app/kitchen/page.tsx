@@ -6,7 +6,6 @@ import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { 
   ChefHat, 
   Clock, 
@@ -19,24 +18,29 @@ import {
 import { toast } from 'sonner';
 import { apiService } from '@/services/api.service';
 import { websocketService } from '@/services/websocket.service';
-import { Order, OrderStatus, Product, WebSocketMessage } from '@/types';
+import { Order, OrderStatus, WebSocketMessage } from '@/types';
 import { format } from 'date-fns';
+import { getCustomerName, getOrderItems, getProductNameFromItem, parseCustomerDetails } from '@/lib/order-utils';
 
 export default function KitchenPage() {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
+    const setupListeners = () => {
+      websocketService.on('/topic/orders', handleOrderUpdate);
+      websocketService.on('/topic/kitchen', handleKitchenUpdate);
+    };
+
     loadOrders();
-    loadProducts();
-    setupWebSocketListeners();
+    setupListeners();
 
     return () => {
       websocketService.off('/topic/orders', handleOrderUpdate);
       websocketService.off('/topic/kitchen', handleKitchenUpdate);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadOrders = async () => {
@@ -56,28 +60,13 @@ export default function KitchenPage() {
     }
   };
 
-  const loadProducts = async () => {
-    try {
-      const response = await apiService.getProducts({ page: 0, size: 100 });
-      const data = response.data.content;
-      setProducts(data);
-    } catch (error) {
-      console.error('Failed to load products:', error);
-    }
-  };
-
-  const setupWebSocketListeners = () => {
-    websocketService.on('/topic/orders', handleOrderUpdate);
-    websocketService.on('/topic/kitchen', handleKitchenUpdate);
-  };
-
   const handleOrderUpdate = (message: WebSocketMessage) => {
     if (message.type === 'ORDER_CREATED' || message.type === 'ORDER_STATUS_CHANGED') {
       loadOrders();
     }
   };
 
-  const handleKitchenUpdate = (message: WebSocketMessage) => {
+  const handleKitchenUpdate = () => {
     loadOrders();
   };
 
@@ -95,11 +84,6 @@ export default function KitchenPage() {
     } catch (error) {
       console.error('Failed to update order status:', error);
     }
-  };
-
-  const getProductName = (productId: number) => {
-    const product = products.find(p => p.id === productId);
-    return product?.name || 'Unknown Product';
   };
 
   const getStatusColor = (status: OrderStatus) => {
@@ -215,26 +199,30 @@ export default function KitchenPage() {
                         </Badge>
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {order.customerName} • {order.createdAt ? format(new Date(order.createdAt), 'HH:mm') : ''}
+                        {getCustomerName(order)} • {order.createdAt ? format(new Date(order.createdAt), 'HH:mm') : ''}
                       </div>
                     </CardHeader>
                     <CardContent className="pt-0">
                       <div className="space-y-2 mb-4">
-                        {order.items?.map((item, index) => (
+                        {getOrderItems(order).map((item, index) => (
                           <div key={index} className="flex justify-between items-center">
                             <span className="flex items-center gap-2">
                               <Utensils className="h-3 w-3" />
-                              {getProductName(item.productId)} x {item.quantity}
+                              {getProductNameFromItem(item)} x {item.quantity}
                             </span>
                           </div>
                         ))}
                       </div>
                       
-                      {order.notes && (
-                        <div className="mb-4 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm">
-                          <strong>Notes:</strong> {order.notes}
-                        </div>
-                      )}
+                      {(() => {
+                        const customerInfo = parseCustomerDetails(order.customerDetails);
+                        const notes = customerInfo.notes || order.notes;
+                        return notes ? (
+                          <div className="mb-4 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm">
+                            <strong>Notes:</strong> {notes}
+                          </div>
+                        ) : null;
+                      })()}
                       
                       <Button 
                         className="w-full" 
@@ -274,26 +262,30 @@ export default function KitchenPage() {
                         </Badge>
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {order.customerName} • {order.createdAt ? format(new Date(order.createdAt), 'HH:mm') : ''}
+                        {getCustomerName(order)} • {order.createdAt ? format(new Date(order.createdAt), 'HH:mm') : ''}
                       </div>
                     </CardHeader>
                     <CardContent className="pt-0">
                       <div className="space-y-2 mb-4">
-                        {order.items?.map((item, index) => (
+                        {getOrderItems(order).map((item, index) => (
                           <div key={index} className="flex justify-between items-center">
                             <span className="flex items-center gap-2">
                               <Utensils className="h-3 w-3" />
-                              {getProductName(item.productId)} x {item.quantity}
+                              {getProductNameFromItem(item)} x {item.quantity}
                             </span>
                           </div>
                         ))}
                       </div>
                       
-                      {order.notes && (
-                        <div className="mb-4 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm">
-                          <strong>Notes:</strong> {order.notes}
-                        </div>
-                      )}
+                      {(() => {
+                        const customerInfo = parseCustomerDetails(order.customerDetails);
+                        const notes = customerInfo.notes || order.notes;
+                        return notes ? (
+                          <div className="mb-4 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm">
+                            <strong>Notes:</strong> {notes}
+                          </div>
+                        ) : null;
+                      })()}
                       
                       <Button 
                         className="w-full" 
@@ -334,16 +326,16 @@ export default function KitchenPage() {
                         </Badge>
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {order.customerName} • {order.createdAt ? format(new Date(order.createdAt), 'HH:mm') : ''}
+                        {getCustomerName(order)} • {order.createdAt ? format(new Date(order.createdAt), 'HH:mm') : ''}
                       </div>
                     </CardHeader>
                     <CardContent className="pt-0">
                       <div className="space-y-2 mb-4">
-                        {order.items?.map((item, index) => (
+                        {getOrderItems(order).map((item, index) => (
                           <div key={index} className="flex justify-between items-center">
                             <span className="flex items-center gap-2">
                               <Utensils className="h-3 w-3" />
-                              {getProductName(item.productId)} x {item.quantity}
+                              {getProductNameFromItem(item)} x {item.quantity}
                             </span>
                           </div>
                         ))}
