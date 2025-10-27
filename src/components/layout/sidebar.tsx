@@ -15,16 +15,10 @@ import {
   Package,
   ShoppingCart,
   Truck,
-  ChefHat,
   Menu,
   LogOut,
-  Settings,
   BarChart,
   Tag,
-  TrendingUp,
-  Archive,
-  UserCheck,
-  Bell,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -154,7 +148,7 @@ export function Sidebar() {
   return (
     <>
       {/* Desktop Sidebar */}
-      <div className="hidden md:flex h-full w-64 flex-col border-r bg-background">
+      <div className="hidden md:flex h-screen w-64 flex-col border-r bg-background sticky top-0">
         <ScrollArea className="flex-1">
           <SidebarContent />
         </ScrollArea>
