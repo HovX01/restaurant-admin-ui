@@ -13,30 +13,30 @@ interface AdminLayoutProps {
 
 export function AdminLayout({ children }: AdminLayoutProps) {
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex min-h-screen bg-gradient-to-br from-background via-background/95 to-muted/30">
       {/* Sidebar */}
       <Sidebar />
-      
+
       {/* Main Content Area */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col">
         {/* Top Header */}
-        <header className="flex h-14 items-center gap-4 border-b bg-background px-6">
+        <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b border-border/60 bg-background/80 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex-1">
             <DynamicBreadcrumb />
           </div>
-          
+
           {/* Notifications */}
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5" />
-            <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center">
+            <Badge className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full p-0">
               3
             </Badge>
           </Button>
         </header>
-        
+
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto bg-muted/10">
-          <div className="container mx-auto p-6">
+        <main className="flex-1">
+          <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-8">
             {children}
           </div>
         </main>

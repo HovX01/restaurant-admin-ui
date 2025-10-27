@@ -6,6 +6,8 @@ import { ProtectedRoute } from '@/components/auth/rbac';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { websocketService } from '@/services/websocket.service';
 import { apiService } from '@/services/api.service';
@@ -51,6 +53,7 @@ export default function DashboardPage() {
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [notifications, setNotifications] = useState<WebSocketMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -67,9 +70,13 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = async (isRefresh = false) => {
     try {
-      setIsLoading(true);
+      if (isRefresh) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
       
       // Load dashboard stats (you might want to create a specific endpoint for this)
       const [ordersResponse, productsResponse, usersResponse] = await Promise.all([
@@ -79,8 +86,6 @@ export default function DashboardPage() {
       ]);
 
       const orders = ordersResponse.data.content;
-      const products = productsResponse.data.content;
-      const users = usersResponse.data.content;
 
       setRecentOrders(orders.slice(0, 5));
       
@@ -101,7 +106,11 @@ export default function DashboardPage() {
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
     } finally {
-      setIsLoading(false);
+      if (isRefresh) {
+        setIsRefreshing(false);
+      } else {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -114,7 +123,7 @@ export default function DashboardPage() {
     setNotifications(prev => [message, ...prev.slice(0, 4)]);
     // Reload orders when new order is created
     if (message.type === 'ORDER_CREATED') {
-      loadDashboardData();
+      loadDashboardData(true);
     }
   };
 
@@ -122,7 +131,7 @@ export default function DashboardPage() {
     setNotifications(prev => [message, ...prev.slice(0, 4)]);
     // Update delivery stats
     if (message.type === 'DELIVERY_STATUS_CHANGED') {
-      loadDashboardData();
+      loadDashboardData(true);
     }
   };
 
@@ -171,6 +180,89 @@ export default function DashboardPage() {
         return 'secondary';
     }
   };
+
+  const StatsCardSkeleton = () => (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-4 w-4" />
+      </CardHeader>
+      <CardContent>
+        <Skeleton className="mb-2 h-8 w-32" />
+        <Skeleton className="h-3 w-full" />
+      </CardContent>
+    </Card>
+  );
+
+  if (isLoading) {
+    return (
+      <ProtectedRoute>
+        <AdminLayout>
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <Skeleton className="h-9 w-96" />
+              <Skeleton className="h-5 w-full max-w-lg" />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {[...Array(4)].map((_, i) => (
+                <StatsCardSkeleton key={i} />
+              ))}
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+              <Card className="col-span-4">
+                <CardHeader>
+                  <Skeleton className="mb-2 h-6 w-32" />
+                  <Skeleton className="h-4 w-48" />
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="flex items-center space-x-4">
+                        <Skeleton className="h-8 w-8" />
+                        <div className="flex-1 space-y-2">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-3 w-48" />
+                        </div>
+                        <div className="space-y-2 text-right">
+                          <Skeleton className="h-4 w-16" />
+                          <Skeleton className="h-5 w-20" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="col-span-3">
+                <CardHeader>
+                  <Skeleton className="mb-2 h-6 w-32" />
+                  <Skeleton className="h-4 w-48" />
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[...Array(4)].map((_, i) => (
+                      <div key={i} className="space-y-2">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-3 w-24" />
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              {[...Array(3)].map((_, i) => (
+                <StatsCardSkeleton key={i} />
+              ))}
+            </div>
+          </div>
+        </AdminLayout>
+      </ProtectedRoute>
+    );
+  }
 
   return (
     <ProtectedRoute>
@@ -253,10 +345,15 @@ export default function DashboardPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={loadDashboardData}
-                    disabled={isLoading}
+                    onClick={() => loadDashboardData(true)}
+                    disabled={isRefreshing}
+                    aria-label="Refresh dashboard"
                   >
-                    <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    {isRefreshing ? (
+                      <Spinner size="sm" className="text-muted-foreground" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
               </CardHeader>
