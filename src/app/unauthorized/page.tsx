@@ -2,12 +2,11 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Home, ArrowLeft, Shield, LifeBuoy } from 'lucide-react';
+import { AlertTriangle, Home, ArrowLeft, Shield } from 'lucide-react';
 import { useAuth } from '@/contexts/auth.context';
 
 export default function UnauthorizedPage() {
@@ -23,6 +22,10 @@ export default function UnauthorizedPage() {
 
   const handleGoBack = () => {
     router.back();
+  };
+
+  const handleGoToDashboard = () => {
+    router.push(getSafeRoute());
   };
 
   const formatRole = (role?: string | null) => {
@@ -128,19 +131,10 @@ export default function UnauthorizedPage() {
               Go back
             </Button>
 
-            <Link href={getSafeRoute()} className="flex-1">
-              <Button className="w-full">
-                <Home className="mr-2 h-4 w-4" />
-                Return to dashboard
-              </Button>
-            </Link>
-
-            <Link href="mailto:support@restaurant-hq.com" className="flex-1">
-              <Button variant="ghost" className="w-full">
-                <LifeBuoy className="mr-2 h-4 w-4" />
-                Contact support
-              </Button>
-            </Link>
+            <Button onClick={handleGoToDashboard} className="flex-1">
+              <Home className="mr-2 h-4 w-4" />
+              Return to dashboard
+            </Button>
           </CardFooter>
         </Card>
       </div>
