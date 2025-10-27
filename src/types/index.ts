@@ -69,10 +69,12 @@ export interface Product {
 
 // Order Types
 export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PREPARING' | 'READY' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELLED';
+export type OrderType = 'DELIVERY' | 'PICKUP' | 'DINE_IN';
 
 export interface OrderItem {
   id?: number;
-  productId: number;
+  orderId?: number;
+  productId?: number;
   product?: Product;
   productName?: string;
   quantity: number;
@@ -85,20 +87,25 @@ export interface Order {
   orderNumber?: string;
   customerId?: number;
   customer?: User;
-  customerName: string;
+  customerName?: string;
   customerPhone?: string;
   customerAddress?: string;
+  customerDetails?: string;
   deliveryAddress?: string;
   assignedDriverId?: number;
   assignedDriver?: User;
   assignedDriverName?: string;
   items?: OrderItem[];
+  orderItems?: OrderItem[];
   totalAmount?: number;
+  totalPrice?: number;
   status: OrderStatus;
+  orderType?: OrderType;
   notes?: string;
   createdBy?: User;
   createdAt?: string;
   updatedAt?: string;
+  delivery?: Delivery | null;
 }
 
 // Delivery Types
