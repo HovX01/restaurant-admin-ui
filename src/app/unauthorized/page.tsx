@@ -4,8 +4,9 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertTriangle, Home, ArrowLeft, Shield } from 'lucide-react';
+import { AlertTriangle, Home, ArrowLeft, Shield, LifeBuoy } from 'lucide-react';
 import { useAuth } from '@/contexts/auth.context';
 
 export default function UnauthorizedPage() {
@@ -45,81 +46,101 @@ export default function UnauthorizedPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-yellow-50 dark:from-red-950 dark:via-orange-950 dark:to-yellow-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl">
-        <Card className="shadow-2xl border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
-          <CardHeader className="text-center pb-8">
-            <div className="mx-auto mb-6 w-20 h-20 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
-              <Shield className="w-10 h-10 text-red-600 dark:text-red-400" />
-            </div>
-            <CardTitle className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              Access Denied
-            </CardTitle>
-            <CardDescription className="text-lg text-gray-600 dark:text-gray-400">
-              You don't have permission to access this resource
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent className="space-y-6">
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-              <div className="flex items-start space-x-3">
-                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <h3 className="font-semibold text-red-800 dark:text-red-200 mb-1">
-                    Insufficient Permissions
-                  </h3>
-                  <p className="text-sm text-red-700 dark:text-red-300">
-                    Your current role ({user?.role}) does not have the necessary permissions to view this page. 
-                    Please contact your administrator if you believe this is an error.
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-amber-50 via-white to-orange-100 dark:from-slate-950 dark:via-slate-900 dark:to-black">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-32 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-orange-300/50 blur-3xl dark:bg-orange-500/30" />
+        <div className="absolute bottom-[-120px] right-[-120px] h-96 w-96 rounded-full bg-red-200/60 blur-3xl dark:bg-red-500/20" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.8),_transparent_55%)] dark:bg-[radial-gradient(circle_at_top,_rgba(148,163,184,0.12),_transparent_65%)]" />
+      </div>
+
+      <div className="relative flex min-h-screen items-center justify-center px-4 py-12">
+        <div className="w-full max-w-3xl">
+          <Card className="border border-white/50 bg-white/80 shadow-2xl shadow-orange-500/10 backdrop-blur-xl transition-all duration-300 hover:border-white/70 dark:border-white/10 dark:bg-slate-900/70 dark:shadow-orange-500/5">
+            <CardHeader className="space-y-4 pb-10 text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-red-500 via-orange-500 to-amber-400 text-white shadow-lg shadow-red-500/30">
+                <Shield className="h-8 w-8" />
+              </div>
+              <Badge className="mx-auto w-fit border-transparent bg-red-100/80 px-3 py-1 text-sm font-medium text-red-700 dark:bg-red-500/10 dark:text-red-200">
+                Security notice
+              </Badge>
+              <CardTitle className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-50">
+                Access restricted for your role
+              </CardTitle>
+              <CardDescription className="mx-auto max-w-xl text-base text-gray-600 dark:text-gray-400">
+                Hey {user?.username}, this area is reserved for a different permission level. You can jump back to your
+                workspace or reach out for a role update in just a click.
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent className="space-y-8">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="rounded-2xl border border-red-200/60 bg-red-50/80 p-5 dark:border-red-900/40 dark:bg-red-900/20">
+                  <div className="mb-3 flex items-center gap-2 text-red-700 dark:text-red-300">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="text-sm font-semibold uppercase tracking-wide">Why you're seeing this</span>
+                  </div>
+                  <p className="text-sm text-red-700/90 dark:text-red-200/80">
+                    Your current role <span className="font-semibold">{user?.role}</span> doesn’t have access to this section.
+                    If you need entry, request an upgrade from an administrator.
                   </p>
                 </div>
-              </div>
-            </div>
 
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-              <div className="flex items-start space-x-3">
-                <div className="w-5 h-5 bg-blue-600 dark:bg-blue-400 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0">
-                  <span className="text-white dark:text-blue-900 text-xs font-bold">i</span>
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-1">
-                    What you can do:
+                <div className="rounded-2xl border border-blue-200/70 bg-blue-50/80 p-5 dark:border-blue-900/40 dark:bg-blue-900/20">
+                  <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-200">
+                    Quick actions
                   </h3>
-                  <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
-                    <li>• Return to your dashboard using the button below</li>
-                    <li>• Contact your system administrator for access</li>
-                    <li>• Check if you're logged in with the correct account</li>
+                  <ul className="space-y-2 text-sm text-blue-700/90 dark:text-blue-200/80">
+                    <li>• Review the access policies in the team handbook</li>
+                    <li>• Confirm you’re logged in with the correct profile</li>
+                    <li>• Contact your manager for an immediate role update</li>
                   </ul>
                 </div>
               </div>
-            </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 pt-4">
-              <Button 
-                onClick={handleGoBack}
-                variant="outline" 
-                className="flex-1 h-12 text-base font-medium"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Go Back
-              </Button>
-              
-              <Link href={getSafeRoute()} className="flex-1">
-                <Button className="w-full h-12 text-base font-medium bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800">
-                  <Home className="w-4 h-4 mr-2" />
-                  Go to Dashboard
+              <div className="rounded-2xl border border-gray-200/80 bg-white/70 p-5 shadow-inner dark:border-gray-800/80 dark:bg-slate-950/40">
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-300">Your session at a glance</h3>
+                <dl className="mt-3 grid gap-3 text-sm text-gray-600 dark:text-gray-400 sm:grid-cols-2">
+                  <div>
+                    <dt className="font-medium text-gray-800 dark:text-gray-200">Signed in as</dt>
+                    <dd className="truncate text-gray-700 dark:text-gray-300">{user?.username}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-medium text-gray-800 dark:text-gray-200">Role</dt>
+                    <dd className="text-gray-700 dark:text-gray-300">{user?.role}</dd>
+                  </div>
+                </dl>
+              </div>
+
+              <div className="flex flex-col gap-3 pt-2 sm:flex-row">
+                <Button
+                  onClick={handleGoBack}
+                  variant="outline"
+                  className="flex-1 h-12 text-base font-medium backdrop-blur-sm transition-colors hover:bg-white/70 dark:border-gray-700 dark:bg-transparent dark:hover:bg-white/10"
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Go back
                 </Button>
-              </Link>
-            </div>
 
-            <div className="text-center pt-4 border-t border-gray-200 dark:border-gray-700">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Logged in as: <span className="font-medium text-gray-700 dark:text-gray-300">{user?.username}</span>
-                {' '}({user?.role})
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+                <Link href={getSafeRoute()} className="flex-1">
+                  <Button className="h-12 w-full rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-base font-medium shadow-lg shadow-blue-500/30 transition-transform hover:scale-[1.01] hover:shadow-xl hover:shadow-blue-500/40">
+                    <Home className="mr-2 h-4 w-4" />
+                    Return to dashboard
+                  </Button>
+                </Link>
+
+                <Link href="mailto:support@restaurant-hq.com" className="flex-1">
+                  <Button
+                    variant="ghost"
+                    className="h-12 w-full text-base font-medium text-blue-700 hover:bg-blue-100/60 dark:text-blue-200 dark:hover:bg-blue-500/10"
+                  >
+                    <LifeBuoy className="mr-2 h-4 w-4" />
+                    Contact support
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
