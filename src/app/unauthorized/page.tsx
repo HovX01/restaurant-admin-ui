@@ -24,9 +24,22 @@ export default function UnauthorizedPage() {
     router.back();
   };
 
+  const formatRole = (role?: string | null) => {
+    if (!role) return 'Unknown role';
+
+    const roleMap: Record<string, string> = {
+      ADMIN: 'Administrator',
+      MANAGER: 'Manager',
+      KITCHEN_STAFF: 'Kitchen Staff',
+      DELIVERY_STAFF: 'Delivery Staff',
+    };
+
+    return roleMap[role] ?? role.replace(/_/g, ' ').toLowerCase().replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
+  };
+
   const getSafeRoute = () => {
     if (!user) return '/login';
-    
+
     // Return user to appropriate dashboard based on role
     switch (user.role) {
       case 'ADMIN':
@@ -60,15 +73,20 @@ export default function UnauthorizedPage() {
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-red-500 via-orange-500 to-amber-400 text-white shadow-lg shadow-red-500/30">
                 <Shield className="h-8 w-8" />
               </div>
-              <Badge className="mx-auto w-fit border-transparent bg-red-100/80 px-3 py-1 text-sm font-medium text-red-700 dark:bg-red-500/10 dark:text-red-200">
-                Security notice
-              </Badge>
+              <div className="flex flex-col items-center gap-2">
+                <Badge className="w-fit border-transparent bg-red-100/80 px-3 py-1 text-sm font-medium text-red-700 dark:bg-red-500/10 dark:text-red-200">
+                  Security notice
+                </Badge>
+                <Badge variant="secondary" className="w-fit border border-blue-100 bg-blue-50/80 px-3 py-1 text-sm font-medium text-blue-700 dark:border-blue-900/40 dark:bg-blue-900/20 dark:text-blue-200">
+                  Signed in as {formatRole(user?.role)}
+                </Badge>
+              </div>
               <CardTitle className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-50">
                 Access restricted for your role
               </CardTitle>
               <CardDescription className="mx-auto max-w-xl text-base text-gray-600 dark:text-gray-400">
-                Hey {user?.username}, this area is reserved for a different permission level. You can jump back to your
-                workspace or reach out for a role update in just a click.
+                Hey {user?.username}, this area is reserved for a different permission level than your {formatRole(user?.role)}
+                access. You can jump back to your workspace or reach out for a role update in just a click.
               </CardDescription>
             </CardHeader>
 
@@ -77,7 +95,7 @@ export default function UnauthorizedPage() {
                 <div className="rounded-2xl border border-red-200/60 bg-red-50/80 p-5 dark:border-red-900/40 dark:bg-red-900/20">
                   <div className="mb-3 flex items-center gap-2 text-red-700 dark:text-red-300">
                     <AlertTriangle className="h-4 w-4" />
-                    <span className="text-sm font-semibold uppercase tracking-wide">Why you're seeing this</span>
+                    <span className="text-sm font-semibold uppercase tracking-wide">Why you&apos;re seeing this</span>
                   </div>
                   <p className="text-sm text-red-700/90 dark:text-red-200/80">
                     Your current role <span className="font-semibold">{user?.role}</span> doesn’t have access to this section.
@@ -106,7 +124,7 @@ export default function UnauthorizedPage() {
                   </div>
                   <div>
                     <dt className="font-medium text-gray-800 dark:text-gray-200">Role</dt>
-                    <dd className="text-gray-700 dark:text-gray-300">{user?.role}</dd>
+                    <dd className="text-gray-700 dark:text-gray-300">{formatRole(user?.role)}</dd>
                   </div>
                 </dl>
               </div>
