@@ -37,22 +37,37 @@ export default function LoginPage() {
 
   const handleDemoLogin = async (role: string) => {
     const demoPassword = 'password123';
-    const demoCredentials = {
-      admin: { username: 'admin', password: demoPassword },
-      manager: { username: 'manager', password: demoPassword },
-      kitchen: { username: 'kitchen', password: demoPassword },
-      delivery: { username: 'delivery', password: demoPassword },
+    const demoCredentials: Record<string, { username: string; password: string }[]> = {
+      admin: [{ username: 'admin', password: demoPassword }],
+      manager: [{ username: 'manager1', password: demoPassword }],
+      kitchen: [{ username: 'chef1', password: demoPassword }],
+      delivery: [
+        { username: 'driver1', password: demoPassword },
+        { username: 'driver2', password: demoPassword },
+      ],
     };
 
-    const creds = demoCredentials[role as keyof typeof demoCredentials];
-    if (creds) {
+    const credentialsList = demoCredentials[role];
+    if (!credentialsList?.length) {
+      return;
+    }
+
+    setError('');
+
+    let lastError: Error | null = null;
+
+    for (const creds of credentialsList) {
       setFormData(creds);
       try {
         await login(creds);
+        return;
       } catch (err) {
-        const error = err as Error;
-        setError(error.message);
+        lastError = err as Error;
       }
+    }
+
+    if (lastError) {
+      setError(lastError.message);
     }
   };
 
