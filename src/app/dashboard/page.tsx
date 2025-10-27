@@ -72,31 +72,73 @@ export default function DashboardPage() {
     try {
       setIsLoading(true);
       
-      // Load dashboard stats (you might want to create a specific endpoint for this)
-      const [ordersResponse, productsResponse, usersResponse] = await Promise.all([
-        apiService.getOrders({ status: 'PENDING' as OrderStatus, page: 0, size: 20 }),
-        apiService.getProducts({ page: 0, size: 20 }),
-        apiService.getUsers({ page: 0, size: 20 }),
-      ]);
+      // Load role-specific data
+      if (user?.role === 'DELIVERY_STAFF') {
+        // For drivers, only load their own deliveries
+        const deliveriesResponse = await apiService.getMyDeliveries({ page: 0, size: 20 });
+        const deliveries = deliveriesResponse.data.content;
+        
+        setStats({
+          totalUsers: 0,
+          totalProducts: 0,
+          totalOrders: 0,
+          pendingOrders: deliveries.filter(d => d.status === 'ASSIGNED').length,
+          activeDeliveries: deliveries.filter(d => d.status === 'PICKED_UP' || d.status === 'ON_THE_WAY').length,
+          todayRevenue: 0,
+          monthlyRevenue: 0,
+          growthRate: 0,
+        });
+        
+        // Map deliveries to orders for display
+        const ordersFromDeliveries = deliveries
+          .filter(d => d.order)
+          .map(d => d.order!)
+          .slice(0, 5);
+        setRecentOrders(ordersFromDeliveries);
+      } else if (user?.role === 'KITCHEN_STAFF') {
+        // For kitchen staff, only load kitchen orders
+        const ordersResponse = await apiService.getKitchenOrders({ page: 0, size: 20 });
+        const orders = ordersResponse.data.content;
+        
+        setRecentOrders(orders.slice(0, 5));
+        
+        setStats({
+          totalUsers: 0,
+          totalProducts: 0,
+          totalOrders: ordersResponse.data.totalElements,
+          pendingOrders: orders.filter(o => o.status === 'PENDING' || o.status === 'CONFIRMED').length,
+          activeDeliveries: orders.filter(o => o.status === 'PREPARING').length,
+          todayRevenue: 0,
+          monthlyRevenue: 0,
+          growthRate: 0,
+        });
+      } else {
+        // For ADMIN and MANAGER, load all data
+        const [ordersResponse, productsResponse, usersResponse] = await Promise.all([
+          apiService.getOrders({ status: 'PENDING' as OrderStatus, page: 0, size: 20 }),
+          apiService.getProducts({ page: 0, size: 20 }),
+          apiService.getUsers({ page: 0, size: 20 }),
+        ]);
 
-      const orders = ordersResponse.data.content;
+        const orders = ordersResponse.data.content;
 
-      setRecentOrders(orders.slice(0, 5));
-      
-      setStats({
-        totalUsers: usersResponse.data.totalElements,
-        totalProducts: productsResponse.data.totalElements,
-        totalOrders: ordersResponse.data.totalElements,
-        pendingOrders: orders.filter(o => o.status === 'PENDING').length,
-        activeDeliveries: orders.filter(o => o.status === 'OUT_FOR_DELIVERY').length,
-        todayRevenue: orders
-          .filter(o => isToday(new Date(o.createdAt || '')))
-          .reduce((sum, o) => sum + getTotalPrice(o), 0),
-        monthlyRevenue: orders
-          .filter(o => isThisMonth(new Date(o.createdAt || '')))
-          .reduce((sum, o) => sum + getTotalPrice(o), 0),
-        growthRate: 12.5, // This would be calculated from historical data
-      });
+        setRecentOrders(orders.slice(0, 5));
+        
+        setStats({
+          totalUsers: usersResponse.data.totalElements,
+          totalProducts: productsResponse.data.totalElements,
+          totalOrders: ordersResponse.data.totalElements,
+          pendingOrders: orders.filter(o => o.status === 'PENDING').length,
+          activeDeliveries: orders.filter(o => o.status === 'OUT_FOR_DELIVERY').length,
+          todayRevenue: orders
+            .filter(o => isToday(new Date(o.createdAt || '')))
+            .reduce((sum, o) => sum + getTotalPrice(o), 0),
+          monthlyRevenue: orders
+            .filter(o => isThisMonth(new Date(o.createdAt || '')))
+            .reduce((sum, o) => sum + getTotalPrice(o), 0),
+          growthRate: 12.5, // This would be calculated from historical data
+        });
+      }
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
     } finally {
@@ -187,57 +229,79 @@ export default function DashboardPage() {
 
           {/* Stats Grid */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">${stats.monthlyRevenue.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground">
-                  <span className="text-green-600">+{stats.growthRate}%</span> from last month
-                </p>
-              </CardContent>
-            </Card>
+            {(user?.role === 'ADMIN' || user?.role === 'MANAGER') && (
+              <>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">${stats.monthlyRevenue.toFixed(2)}</div>
+                    <p className="text-xs text-muted-foreground">
+                      <span className="text-green-600">+{stats.growthRate}%</span> from last month
+                    </p>
+                  </CardContent>
+                </Card>
+              </>
+            )}
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Pending Orders</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  {user?.role === 'DELIVERY_STAFF' ? 'Assigned Deliveries' : 'Pending Orders'}
+                </CardTitle>
                 <ShoppingCart className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats.pendingOrders}</div>
                 <p className="text-xs text-muted-foreground">
-                  {stats.totalOrders} total orders today
+                  {user?.role === 'DELIVERY_STAFF' 
+                    ? 'Waiting to be picked up'
+                    : user?.role === 'KITCHEN_STAFF'
+                    ? 'Orders to prepare'
+                    : `${stats.totalOrders} total orders today`
+                  }
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Deliveries</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  {user?.role === 'DELIVERY_STAFF' ? 'Active Deliveries' : user?.role === 'KITCHEN_STAFF' ? 'Preparing' : 'Active Deliveries'}
+                </CardTitle>
                 <Truck className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats.activeDeliveries}</div>
                 <p className="text-xs text-muted-foreground">
-                  Currently out for delivery
+                  {user?.role === 'DELIVERY_STAFF' 
+                    ? 'Currently delivering'
+                    : user?.role === 'KITCHEN_STAFF'
+                    ? 'Being prepared'
+                    : 'Currently out for delivery'
+                  }
                 </p>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Today&apos;s Revenue</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">${stats.todayRevenue.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground">
-                  Updated in real-time
-                </p>
-              </CardContent>
-            </Card>
+            {(user?.role === 'ADMIN' || user?.role === 'MANAGER') && (
+              <>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Today&apos;s Revenue</CardTitle>
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">${stats.todayRevenue.toFixed(2)}</div>
+                    <p className="text-xs text-muted-foreground">
+                      Updated in real-time
+                    </p>
+                  </CardContent>
+                </Card>
+              </>
+            )}
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
@@ -246,8 +310,22 @@ export default function DashboardPage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>Recent Orders</CardTitle>
-                    <CardDescription>Latest orders from your restaurant</CardDescription>
+                    <CardTitle>
+                      {user?.role === 'DELIVERY_STAFF' 
+                        ? 'My Deliveries' 
+                        : user?.role === 'KITCHEN_STAFF'
+                        ? 'Kitchen Orders'
+                        : 'Recent Orders'
+                      }
+                    </CardTitle>
+                    <CardDescription>
+                      {user?.role === 'DELIVERY_STAFF' 
+                        ? 'Your assigned delivery orders' 
+                        : user?.role === 'KITCHEN_STAFF'
+                        ? 'Orders to prepare in the kitchen'
+                        : 'Latest orders from your restaurant'
+                      }
+                    </CardDescription>
                   </div>
                   <Button
                     variant="ghost"
@@ -313,38 +391,40 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          {/* Quick Stats */}
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.totalUsers}</div>
-              </CardContent>
-            </Card>
+          {/* Quick Stats - Only for ADMIN and MANAGER */}
+          {(user?.role === 'ADMIN' || user?.role === 'MANAGER') && (
+            <div className="grid gap-4 md:grid-cols-3">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.totalUsers}</div>
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Products</CardTitle>
-                <Package className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.totalProducts}</div>
-              </CardContent>
-            </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Products</CardTitle>
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.totalProducts}</div>
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-                <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.totalOrders}</div>
-              </CardContent>
-            </Card>
-          </div>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+                  <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.totalOrders}</div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
       </AdminLayout>
     </ProtectedRoute>
