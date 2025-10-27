@@ -17,7 +17,6 @@ import {
   Truck,
   Menu,
   LogOut,
-  BarChart,
   Tag,
 } from 'lucide-react';
 
@@ -65,12 +64,6 @@ const menuItems: MenuItem[] = [
     href: '/users',
     icon: Users,
     roles: ['ADMIN'],
-  },
-  {
-    title: 'Analytics',
-    href: '/analytics',
-    icon: BarChart,
-    roles: ['ADMIN', 'MANAGER'],
   },
 ];
 
