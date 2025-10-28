@@ -260,3 +260,23 @@ export interface DeliveryFilter {
   deliveryStaffId?: number;
   orderId?: number;
 }
+
+// Dashboard Stats Types
+export interface DashboardStats {
+  totalOrders?: number;
+  totalRevenue?: number;
+  activeDeliveries?: number;
+  completedOrders?: number;
+  pendingOrders?: number;
+  cancelledOrders?: number;
+  [key: string]: unknown;
+}
+
+// Settings Container Type
+export interface Settings {
+  restaurant?: RestaurantSettings;
+  notifications?: NotificationSettings;
+  operational?: OperationalSettings;
+  payment?: PaymentSettings;
+  [key: string]: unknown;
+}

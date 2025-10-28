@@ -2,11 +2,11 @@ import axios, { AxiosInstance, AxiosError } from 'axios';
 import Cookies from 'js-cookie';
 import { toast } from 'sonner';
 import { 
-  User, Category, Product, Order, Delivery, DeliveryDriver,
+  User, Category, Product, Order, Delivery,
   LoginRequest, LoginResponse, RegisterRequest, ChangePasswordRequest,
   ApiResponse, PaginatedResponse,
   UserFilter, ProductFilter, OrderFilter, DeliveryFilter,
-  OrderStatus, DeliveryStatus
+  DashboardStats, Settings
 } from '@/types';
 
 // Global error handler for authentication errors
@@ -587,67 +587,45 @@ class ApiService {
   }
 
   // Dashboard Statistics
-  async getDashboardStats(): Promise<ApiResponse<any>> {
-    const response = await this.api.get<ApiResponse<any>>('/dashboard/stats');
+  async getDashboardStats(): Promise<ApiResponse<DashboardStats>> {
+    const response = await this.api.get<ApiResponse<DashboardStats>>('/dashboard/stats');
     return response.data;
   }
 
-  async getDashboardOrderStats(): Promise<ApiResponse<any>> {
-    const response = await this.api.get<ApiResponse<any>>('/dashboard/orders/stats');
+  async getDashboardOrderStats(): Promise<ApiResponse<DashboardStats>> {
+    const response = await this.api.get<ApiResponse<DashboardStats>>('/dashboard/orders/stats');
     return response.data;
   }
 
-  async getDashboardRevenueStats(): Promise<ApiResponse<any>> {
-    const response = await this.api.get<ApiResponse<any>>('/dashboard/revenue/stats');
+  async getDashboardRevenueStats(): Promise<ApiResponse<DashboardStats>> {
+    const response = await this.api.get<ApiResponse<DashboardStats>>('/dashboard/revenue/stats');
     return response.data;
   }
 
-  async getDashboardDeliveryStats(): Promise<ApiResponse<any>> {
-    const response = await this.api.get<ApiResponse<any>>('/dashboard/deliveries/stats');
-    return response.data;
-  }
-
-  // Analytics APIs
-  async getAnalyticsData(params?: {
-    startDate?: string;
-    endDate?: string;
-    type?: string;
-  }): Promise<ApiResponse<any>> {
-    const response = await this.api.get<ApiResponse<any>>('/analytics', { params });
-    return response.data;
-  }
-
-  async exportAnalyticsData(format: 'csv' | 'excel', params?: {
-    startDate?: string;
-    endDate?: string;
-    type?: string;
-  }): Promise<Blob> {
-    const response = await this.api.get('/analytics/export', {
-      params: { format, ...params },
-      responseType: 'blob'
-    });
+  async getDashboardDeliveryStats(): Promise<ApiResponse<DashboardStats>> {
+    const response = await this.api.get<ApiResponse<DashboardStats>>('/dashboard/deliveries/stats');
     return response.data;
   }
 
   // Settings APIs
-  async getSettings(): Promise<ApiResponse<any>> {
-    const response = await this.api.get<ApiResponse<any>>('/settings');
+  async getSettings(): Promise<ApiResponse<Settings>> {
+    const response = await this.api.get<ApiResponse<Settings>>('/settings');
     return response.data;
   }
 
-  async updateSettings(data: any): Promise<ApiResponse<any>> {
-    const response = await this.api.put<ApiResponse<any>>('/settings', data);
+  async updateSettings(data: Partial<Settings>): Promise<ApiResponse<Settings>> {
+    const response = await this.api.put<ApiResponse<Settings>>('/settings', data);
     toast.success('Settings updated successfully');
     return response.data;
   }
 
-  async getSettingsByKey(key: string): Promise<ApiResponse<any>> {
-    const response = await this.api.get<ApiResponse<any>>(`/settings/${key}`);
+  async getSettingsByKey(key: string): Promise<ApiResponse<unknown>> {
+    const response = await this.api.get<ApiResponse<unknown>>(`/settings/${key}`);
     return response.data;
   }
 
-  async updateSettingsByKey(key: string, value: any): Promise<ApiResponse<any>> {
-    const response = await this.api.put<ApiResponse<any>>(`/settings/${key}`, { value });
+  async updateSettingsByKey(key: string, value: unknown): Promise<ApiResponse<unknown>> {
+    const response = await this.api.put<ApiResponse<unknown>>(`/settings/${key}`, { value });
     toast.success('Setting updated successfully');
     return response.data;
   }
