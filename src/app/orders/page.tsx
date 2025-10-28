@@ -52,7 +52,7 @@ import {
 import { useForm, useFieldArray } from 'react-hook-form';
 import { toast } from 'sonner';
 import { apiService } from '@/services/api.service';
-import { Order, OrderStatus, Product } from '@/types';
+import { Order, OrderStatus, Product, User } from '@/types';
 import { format } from 'date-fns';
 import { 
   parseCustomerDetails, 
@@ -77,11 +77,16 @@ interface OrderFormData {
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [drivers, setDrivers] = useState<User[]>([]);
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [isAssignDeliveryDialogOpen, setIsAssignDeliveryDialogOpen] = useState(false);
+  const [selectedDriver, setSelectedDriver] = useState<number | null>(null);
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [deliveryNotes, setDeliveryNotes] = useState('');
 
   const form = useForm<OrderFormData>({
     defaultValues: {
@@ -105,14 +110,17 @@ export default function OrdersPage() {
   const loadData = async () => {
     try {
 
-      const [ordersResponse, productsResponse] = await Promise.all([
+      const [ordersResponse, productsResponse, driversResponse] = await Promise.all([
         apiService.getOrders({ page: 0, size: 100 }),
         apiService.getProducts({ page: 0, size: 100 }),
+        apiService.getAvailableDeliveryStaff(),
       ]);
       const ordersData = ordersResponse.data.content;
       const productsData = productsResponse.data.content;
+      const driversData = driversResponse.data || [];
       setOrders(ordersData);
       setProducts(productsData);
+      setDrivers(driversData);
     } catch (error) {
       console.error('Failed to load data:', error);
       toast.error('Failed to load data');
@@ -153,6 +161,41 @@ export default function OrdersPage() {
   const handleView = (order: Order) => {
     setSelectedOrder(order);
     setIsViewDialogOpen(true);
+  };
+
+  const handleOpenAssignDelivery = (order: Order) => {
+    setSelectedOrder(order);
+    const customerInfo = parseCustomerDetails(order.customerDetails);
+    const address = order.deliveryAddress || order.customerAddress || customerInfo.address || '';
+    setDeliveryAddress(address);
+    setDeliveryNotes('');
+    setSelectedDriver(null);
+    setIsAssignDeliveryDialogOpen(true);
+  };
+
+  const handleAssignDelivery = async () => {
+    if (!selectedOrder || !selectedDriver || !deliveryAddress.trim()) {
+      toast.error('Please select a driver and provide a delivery address');
+      return;
+    }
+    
+    try {
+      await apiService.assignDelivery(
+        selectedOrder.id, 
+        selectedDriver, 
+        deliveryAddress, 
+        deliveryNotes || undefined
+      );
+      toast.success(`Delivery assigned to order #${selectedOrder.id}`);
+      setIsAssignDeliveryDialogOpen(false);
+      setSelectedOrder(null);
+      setSelectedDriver(null);
+      setDeliveryAddress('');
+      setDeliveryNotes('');
+      await loadData();
+    } catch (error) {
+      console.error('Failed to assign delivery:', error);
+    }
   };
 
   const resetForm = () => {
@@ -291,10 +334,16 @@ export default function OrdersPage() {
               )}
               
               {order.status === 'READY' && (
-                <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'OUT_FOR_DELIVERY')}>
-                  <Truck className="mr-2 h-4 w-4" />
-                  Out for Delivery
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuItem onClick={() => handleOpenAssignDelivery(order)}>
+                    <Truck className="mr-2 h-4 w-4" />
+                    Assign Delivery
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'OUT_FOR_DELIVERY')}>
+                    <Truck className="mr-2 h-4 w-4" />
+                    Out for Delivery
+                  </DropdownMenuItem>
+                </>
               )}
               
               {order.status === 'OUT_FOR_DELIVERY' && (
@@ -645,6 +694,96 @@ export default function OrdersPage() {
                   </div>
                 );
               })()}
+            </DialogContent>
+          </Dialog>
+
+          {/* Assign Delivery Dialog */}
+          <Dialog open={isAssignDeliveryDialogOpen} onOpenChange={setIsAssignDeliveryDialogOpen}>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Assign Delivery to Order #{selectedOrder?.id}</DialogTitle>
+              </DialogHeader>
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <FormLabel>Select Driver *</FormLabel>
+                  <Select 
+                    value={selectedDriver?.toString() || ''} 
+                    onValueChange={(value) => setSelectedDriver(Number(value))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a driver..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {drivers.filter(d => d.enabled).map((driver) => (
+                        <SelectItem key={driver.id} value={driver.id.toString()}>
+                          <div className="flex items-center gap-2">
+                            {driver.firstName && driver.lastName 
+                              ? `${driver.firstName} ${driver.lastName}` 
+                              : driver.username}
+                            {driver.phone && ` - ${driver.phone}`}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <FormLabel>Delivery Address *</FormLabel>
+                  <Textarea
+                    placeholder="Enter delivery address..."
+                    value={deliveryAddress}
+                    onChange={(e) => setDeliveryAddress(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <FormLabel>Delivery Notes (Optional)</FormLabel>
+                  <Textarea
+                    placeholder="Special delivery instructions..."
+                    value={deliveryNotes}
+                    onChange={(e) => setDeliveryNotes(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+
+                {selectedOrder && (() => {
+                  const customerInfo = parseCustomerDetails(selectedOrder.customerDetails);
+                  const customerName = getCustomerName(selectedOrder);
+                  const phone = selectedOrder.customerPhone || customerInfo.phone;
+                  const total = getTotalPrice(selectedOrder);
+                  
+                  return (
+                    <div className="p-4 bg-muted rounded-lg">
+                      <h4 className="font-medium mb-2">Order Details</h4>
+                      <div className="space-y-1 text-sm">
+                        <div>Customer: {customerName}</div>
+                        {phone && <div>Phone: {phone}</div>}
+                        <div>Total: ${total.toFixed(2)}</div>
+                        <div>Status: <Badge variant="secondary" className="ml-2">{selectedOrder.status}</Badge></div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              <div className="flex justify-end gap-2 mt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsAssignDeliveryDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleAssignDelivery} 
+                  disabled={!selectedDriver || !deliveryAddress.trim()}
+                >
+                  <Truck className="mr-2 h-4 w-4" />
+                  Assign Delivery
+                </Button>
+              </div>
             </DialogContent>
           </Dialog>
 
