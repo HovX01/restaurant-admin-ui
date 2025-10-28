@@ -151,7 +151,7 @@ export default function SettingsPage() {
     try {
       setLoading(true);
       const response = await apiService.getSettings();
-      const data = response.data;
+      const data = response.data as Record<string, unknown>;
       
       if (data.restaurant) setRestaurantSettings(data.restaurant as RestaurantSettings);
       if (data.notifications) setNotificationSettings(data.notifications as NotificationSettings);
