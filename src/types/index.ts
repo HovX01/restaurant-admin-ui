@@ -235,6 +235,39 @@ export interface PaymentSettings {
   stripePublicKey: string;
   paypalClientId: string;
 }
+
+export type Settings = RestaurantSettings | NotificationSettings | OperationalSettings | PaymentSettings;
+
+export interface AllSettings {
+  restaurant?: RestaurantSettings;
+  notification?: NotificationSettings;
+  operational?: OperationalSettings;
+  payment?: PaymentSettings;
+  [key: string]: unknown;
+}
+
+export interface DashboardStats {
+  totalOrders?: number;
+  pendingOrders?: number;
+  completedOrders?: number;
+  cancelledOrders?: number;
+  totalRevenue?: number;
+  todayRevenue?: number;
+  totalUsers?: number;
+  activeDeliveries?: number;
+  [key: string]: unknown;
+}
+
+export interface AnalyticsData {
+  labels?: string[];
+  datasets?: Array<{
+    label: string;
+    data: number[];
+    [key: string]: unknown;
+  }>;
+  [key: string]: unknown;
+}
+
 export interface UserFilter {
   role?: UserRole;
   search?: string;
