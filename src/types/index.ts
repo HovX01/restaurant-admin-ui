@@ -68,7 +68,15 @@ export interface Product {
 }
 
 // Order Types
-export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PREPARING' | 'READY' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELLED';
+export type OrderStatus =
+  | 'PENDING'
+  | 'CONFIRMED'
+  | 'PREPARING'
+  | 'READY_FOR_PICKUP'
+  | 'READY_FOR_DELIVERY'
+  | 'OUT_FOR_DELIVERY'
+  | 'COMPLETED'
+  | 'CANCELLED';
 export type OrderType = 'DELIVERY' | 'PICKUP' | 'DINE_IN';
 
 export interface OrderItem {

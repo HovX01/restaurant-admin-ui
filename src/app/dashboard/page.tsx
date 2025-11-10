@@ -183,7 +183,11 @@ export default function DashboardPage() {
         return <Clock className="h-4 w-4" />;
       case 'CONFIRMED':
         return <AlertCircle className="h-4 w-4" />;
-      case 'DELIVERED':
+      case 'READY_FOR_PICKUP':
+        return <CheckCircle className="h-4 w-4" />;
+      case 'READY_FOR_DELIVERY':
+        return <Package className="h-4 w-4" />;
+      case 'COMPLETED':
         return <CheckCircle className="h-4 w-4" />;
       case 'CANCELLED':
         return <XCircle className="h-4 w-4" />;
@@ -200,11 +204,13 @@ export default function DashboardPage() {
         return 'info';
       case 'PREPARING':
         return 'info';
-      case 'READY':
+      case 'READY_FOR_PICKUP':
+        return 'success';
+      case 'READY_FOR_DELIVERY':
         return 'success';
       case 'OUT_FOR_DELIVERY':
         return 'warning';
-      case 'DELIVERED':
+      case 'COMPLETED':
         return 'success';
       case 'CANCELLED':
         return 'destructive';
