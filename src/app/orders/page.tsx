@@ -41,7 +41,8 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Truck
+  Truck,
+  Package
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -176,11 +177,13 @@ export default function OrdersPage() {
         return <AlertCircle className="h-4 w-4" />;
       case 'PREPARING':
         return <AlertCircle className="h-4 w-4" />;
-      case 'READY':
+      case 'READY_FOR_PICKUP':
         return <CheckCircle className="h-4 w-4" />;
+      case 'READY_FOR_DELIVERY':
+        return <Package className="h-4 w-4" />;
       case 'OUT_FOR_DELIVERY':
         return <Truck className="h-4 w-4" />;
-      case 'DELIVERED':
+      case 'COMPLETED':
         return <CheckCircle className="h-4 w-4" />;
       case 'CANCELLED':
         return <XCircle className="h-4 w-4" />;
@@ -197,11 +200,13 @@ export default function OrdersPage() {
         return 'secondary';
       case 'PREPARING':
         return 'default';
-      case 'READY':
+      case 'READY_FOR_PICKUP':
+        return 'secondary';
+      case 'READY_FOR_DELIVERY':
         return 'secondary';
       case 'OUT_FOR_DELIVERY':
         return 'default';
-      case 'DELIVERED':
+      case 'COMPLETED':
         return 'default';
       case 'CANCELLED':
         return 'destructive';
@@ -209,6 +214,9 @@ export default function OrdersPage() {
         return 'secondary';
     }
   };
+
+  const getReadyStatus = (order: Order): OrderStatus =>
+    order.orderType === 'DELIVERY' ? 'READY_FOR_DELIVERY' : 'READY_FOR_PICKUP';
 
   const columns: ColumnDef<Order>[] = [
     {
@@ -284,27 +292,27 @@ export default function OrdersPage() {
               )}
               
               {order.status === 'PREPARING' && (
-                <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'READY')}>
+                <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, getReadyStatus(order))}>
                   <CheckCircle className="mr-2 h-4 w-4" />
                   Mark Ready
                 </DropdownMenuItem>
               )}
-              
-              {order.status === 'READY' && (
+
+              {order.status === 'READY_FOR_DELIVERY' && (
                 <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'OUT_FOR_DELIVERY')}>
                   <Truck className="mr-2 h-4 w-4" />
                   Out for Delivery
                 </DropdownMenuItem>
               )}
-              
-              {order.status === 'OUT_FOR_DELIVERY' && (
-                <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'DELIVERED')}>
+
+              {(order.status === 'READY_FOR_PICKUP' || order.status === 'OUT_FOR_DELIVERY') && (
+                <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'COMPLETED')}>
                   <CheckCircle className="mr-2 h-4 w-4" />
-                  Mark Delivered
+                  Mark Completed
                 </DropdownMenuItem>
               )}
-              
-              {!['DELIVERED', 'CANCELLED'].includes(order.status) && (
+
+              {!['COMPLETED', 'CANCELLED'].includes(order.status) && (
                 <DropdownMenuItem
                   onClick={() => handleStatusUpdate(order.id, 'CANCELLED')}
                   className="text-destructive"

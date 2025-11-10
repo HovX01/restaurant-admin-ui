@@ -49,8 +49,8 @@ export default function KitchenPage() {
       // Get orders that are in kitchen workflow states
       const response = await apiService.getKitchenOrders({ page: 0, size: 100 });
       const data = response.data.content;
-      const filteredOrders = data.filter(order => 
-        ['CONFIRMED', 'PREPARING', 'READY'].includes(order.status)
+      const filteredOrders = data.filter(order =>
+        ['CONFIRMED', 'PREPARING', 'READY_FOR_PICKUP', 'READY_FOR_DELIVERY'].includes(order.status)
       );
       setOrders(filteredOrders);
     } catch (error) {
@@ -86,13 +86,18 @@ export default function KitchenPage() {
     }
   };
 
+  const getReadyStatus = (order: Order): OrderStatus =>
+    order.orderType === 'DELIVERY' ? 'READY_FOR_DELIVERY' : 'READY_FOR_PICKUP';
+
   const getStatusColor = (status: OrderStatus) => {
     switch (status) {
       case 'CONFIRMED':
         return 'default';
       case 'PREPARING':
         return 'secondary';
-      case 'READY':
+      case 'READY_FOR_PICKUP':
+        return 'default';
+      case 'READY_FOR_DELIVERY':
         return 'default';
       default:
         return 'secondary';
@@ -105,7 +110,9 @@ export default function KitchenPage() {
         return <Clock className="h-4 w-4" />;
       case 'PREPARING':
         return <Timer className="h-4 w-4" />;
-      case 'READY':
+      case 'READY_FOR_PICKUP':
+        return <CheckCircle className="h-4 w-4" />;
+      case 'READY_FOR_DELIVERY':
         return <CheckCircle className="h-4 w-4" />;
       default:
         return <AlertCircle className="h-4 w-4" />;
@@ -114,7 +121,7 @@ export default function KitchenPage() {
 
   const confirmedOrders = orders.filter(o => o.status === 'CONFIRMED');
   const preparingOrders = orders.filter(o => o.status === 'PREPARING');
-  const readyOrders = orders.filter(o => o.status === 'READY');
+  const readyOrders = orders.filter(o => ['READY_FOR_PICKUP', 'READY_FOR_DELIVERY'].includes(o.status));
 
   return (
     <ProtectedRoute requiredRoles={['ADMIN', 'MANAGER', 'KITCHEN_STAFF']}>
@@ -287,10 +294,10 @@ export default function KitchenPage() {
                         ) : null;
                       })()}
                       
-                      <Button 
-                        className="w-full" 
+                      <Button
+                        className="w-full"
                         variant="default"
-                        onClick={() => handleStatusUpdate(order.id, 'READY')}
+                        onClick={() => handleStatusUpdate(order.id, getReadyStatus(order))}
                       >
                         Mark as Ready
                       </Button>
@@ -311,7 +318,7 @@ export default function KitchenPage() {
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-5 w-5" />
-                <h2 className="text-xl font-semibold">Ready for Pickup ({readyOrders.length})</h2>
+                <h2 className="text-xl font-semibold">Ready Orders ({readyOrders.length})</h2>
               </div>
               
               <div className="space-y-3">
@@ -322,7 +329,7 @@ export default function KitchenPage() {
                         <CardTitle className="text-lg">Order #{order.id}</CardTitle>
                         <Badge variant={getStatusColor(order.status)} className="flex items-center gap-1">
                           {getStatusIcon(order.status)}
-                          Ready
+                          {order.status.replace('_', ' ')}
                         </Badge>
                       </div>
                       <div className="text-sm text-muted-foreground">
@@ -342,7 +349,7 @@ export default function KitchenPage() {
                       </div>
                       
                       <div className="text-sm text-green-600 font-medium">
-                        ✓ Ready for delivery/pickup
+                        ✓ {order.status === 'READY_FOR_DELIVERY' ? 'Ready for delivery' : 'Ready for pickup'}
                       </div>
                     </CardContent>
                   </Card>

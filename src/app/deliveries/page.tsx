@@ -130,11 +130,11 @@ export default function DeliveriesPage() {
 
   const getStatusColor = (status: OrderStatus) => {
     switch (status) {
-      case 'READY':
+      case 'READY_FOR_DELIVERY':
         return 'default';
       case 'OUT_FOR_DELIVERY':
         return 'secondary';
-      case 'DELIVERED':
+      case 'COMPLETED':
         return 'default';
       case 'CANCELLED':
         return 'destructive';
@@ -145,11 +145,11 @@ export default function DeliveriesPage() {
 
   const getStatusIcon = (status: OrderStatus) => {
     switch (status) {
-      case 'READY':
+      case 'READY_FOR_DELIVERY':
         return <Package className="h-4 w-4" />;
       case 'OUT_FOR_DELIVERY':
         return <Truck className="h-4 w-4" />;
-      case 'DELIVERED':
+      case 'COMPLETED':
         return <CheckCircle className="h-4 w-4" />;
       case 'CANCELLED':
         return <AlertCircle className="h-4 w-4" />;
@@ -160,9 +160,9 @@ export default function DeliveriesPage() {
 
 
 
-  const readyOrders = (orders || []).filter(o => o.status === 'READY');
+  const readyOrders = (orders || []).filter(o => o.status === 'READY_FOR_DELIVERY');
   const outForDeliveryOrders = (orders || []).filter(o => o.status === 'OUT_FOR_DELIVERY');
-  const deliveredOrders = (orders || []).filter(o => o.status === 'DELIVERED');
+  const completedOrders = (orders || []).filter(o => o.status === 'COMPLETED');
   const availableDrivers = (drivers || []).filter(d => d.enabled);
 
   const deliveryColumns: ColumnDef<Order>[] = [
@@ -256,7 +256,7 @@ export default function DeliveriesPage() {
           >
             <Eye className="h-3 w-3" />
           </Button>
-          {row.original.status === 'READY' && (
+          {row.original.status === 'READY_FOR_DELIVERY' && (
             <Button
               variant="outline"
               size="sm"
@@ -272,7 +272,7 @@ export default function DeliveriesPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handleStatusUpdate(row.original.id, 'DELIVERED')}
+              onClick={() => handleStatusUpdate(row.original.id, 'COMPLETED')}
             >
               <CheckCircle className="h-3 w-3" />
             </Button>
@@ -332,11 +332,11 @@ export default function DeliveriesPage() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Delivered Today</CardTitle>
+                <CardTitle className="text-sm font-medium">Completed Today</CardTitle>
                 <CheckCircle className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{deliveredOrders.length}</div>
+                <div className="text-2xl font-bold">{completedOrders.length}</div>
                 <p className="text-xs text-muted-foreground">
                   Completed deliveries
                 </p>
