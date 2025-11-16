@@ -55,6 +55,7 @@ import { toast } from 'sonner';
 import { apiService } from '@/services/api.service';
 import { Order, OrderStatus, Product } from '@/types';
 import { format } from 'date-fns';
+import { usePageLoading } from '@/contexts/page-loading.context';
 import { 
   parseCustomerDetails, 
   getOrderItems, 
@@ -94,17 +95,23 @@ export default function OrdersPage() {
     },
   });
 
+  const { startLoading, stopLoading } = usePageLoading();
+
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: 'items',
   });
 
   useEffect(() => {
-    loadData();
+    loadData(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadData = async () => {
+  const loadData = async (withLoader = false) => {
     try {
+      if (withLoader) {
+        startLoading();
+      }
 
       const [ordersResponse, productsResponse] = await Promise.all([
         apiService.getOrders({ page: 0, size: 100 }),
@@ -117,6 +124,10 @@ export default function OrdersPage() {
     } catch (error) {
       console.error('Failed to load data:', error);
       toast.error('Failed to load data');
+    } finally {
+      if (withLoader) {
+        stopLoading();
+      }
     }
   };
 

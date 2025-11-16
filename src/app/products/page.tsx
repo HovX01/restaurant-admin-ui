@@ -61,6 +61,7 @@ import { toast } from 'sonner';
 import { apiService } from '@/services/api.service';
 import { Product, Category } from '@/types';
 import { format } from 'date-fns';
+import { usePageLoading } from '@/contexts/page-loading.context';
 
 interface ProductFormData {
   name: string;
@@ -91,8 +92,11 @@ export default function ProductsPage() {
     },
   });
 
+  const { startLoading, stopLoading } = usePageLoading();
+
   useEffect(() => {
-    loadData();
+    loadData(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -103,8 +107,12 @@ export default function ProductsPage() {
     }
   }, [products, selectedCategoryFilter]);
 
-  const loadData = async () => {
+  const loadData = async (withLoader = false) => {
+    const showLoader = withLoader;
     try {
+      if (showLoader) {
+        startLoading();
+      }
       const [productsResponse, categoriesResponse] = await Promise.all([
         apiService.getProducts({ page: 0, size: 100 }),
         apiService.getCategories({ page: 0, size: 100 }),
@@ -112,13 +120,17 @@ export default function ProductsPage() {
       const productsData = productsResponse.data.content;
       const categoriesData = categoriesResponse.data.content;
       setProducts(productsData);
-       setCategories(categoriesData);
-       setFilteredProducts(productsData);
-     } catch (error) {
-       console.error('Failed to load data:', error);
-       toast.error('Failed to load data');
-     }
-   };
+      setCategories(categoriesData);
+      setFilteredProducts(productsData);
+    } catch (error) {
+      console.error('Failed to load data:', error);
+      toast.error('Failed to load data');
+    } finally {
+      if (showLoader) {
+        stopLoading();
+      }
+    }
+  };
 
   const handleSubmit = async (data: ProductFormData) => {
     try {

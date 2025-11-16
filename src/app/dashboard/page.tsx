@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { getCustomerName, getTotalPrice } from '@/lib/order-utils';
+import { usePageLoading } from '@/contexts/page-loading.context';
 
 interface DashboardStats {
   totalUsers: number;
@@ -52,10 +53,11 @@ export default function DashboardPage() {
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [notifications, setNotifications] = useState<WebSocketMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { startLoading, stopLoading } = usePageLoading();
 
   useEffect(() => {
     const loadData = async () => {
-      await loadDashboardData();
+      await loadDashboardData(true);
     };
     loadData();
     setupWebSocketListeners();
@@ -68,9 +70,12 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = async (withLoader = false) => {
     try {
       setIsLoading(true);
+      if (withLoader) {
+        startLoading();
+      }
       
       // Load role-specific data
       if (user?.role === 'DELIVERY_STAFF') {
@@ -143,6 +148,9 @@ export default function DashboardPage() {
       console.error('Failed to load dashboard data:', error);
     } finally {
       setIsLoading(false);
+      if (withLoader) {
+        stopLoading();
+      }
     }
   };
 

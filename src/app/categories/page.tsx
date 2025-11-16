@@ -47,6 +47,7 @@ import { toast } from 'sonner';
 import { apiService } from '@/services/api.service';
 import { Category } from '@/types';
 import { format } from 'date-fns';
+import { usePageLoading } from '@/contexts/page-loading.context';
 
 interface CategoryFormData {
   name: string;
@@ -66,17 +67,27 @@ export default function CategoriesPage() {
     },
   });
 
+  const { startLoading, stopLoading } = usePageLoading();
+
   useEffect(() => {
-    loadCategories();
+    loadCategories(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadCategories = async () => {
+  const loadCategories = async (withLoader = false) => {
     try {
+      if (withLoader) {
+        startLoading();
+      }
       const response = await apiService.getCategories({ page: 0, size: 100 });
       const data = response.data.content;
       setCategories(data);
     } catch (error) {
       console.error('Failed to load categories:', error);
+    } finally {
+      if (withLoader) {
+        stopLoading();
+      }
     }
   };
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ProtectedRoute } from '@/components/auth/rbac';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,6 +32,7 @@ import { format } from 'date-fns';
 import { DataTable } from '@/components/ui/data-table';
 import { ColumnDef } from '@tanstack/react-table';
 import { getCustomerName, getTotalPrice, getOrderItems, parseCustomerDetails, getProductNameFromItem } from '@/lib/order-utils';
+import { usePageLoading } from '@/contexts/page-loading.context';
 
 export default function DeliveriesPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -42,6 +43,40 @@ export default function DeliveriesPage() {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState<number | null>(null);
   const [notes, setNotes] = useState('');
+  const { startLoading, stopLoading } = usePageLoading();
+
+  const loadDeliveryOrders = useCallback(async () => {
+    try {
+      const response = await apiService.getDeliveryOrders({ page: 0, size: 100 });
+      const data = response.data || [];
+      setOrders(data);
+    } catch (error) {
+      console.error('Failed to load delivery orders:', error);
+      setOrders([]);
+    }
+  }, []);
+
+  const loadDrivers = useCallback(async () => {
+    try {
+      const response = await apiService.getDeliveryDrivers({ page: 0, size: 100 });
+      const data = response.data || [];
+      setDrivers(data);
+    } catch (error) {
+      console.error('Failed to load drivers:', error);
+      setDrivers([]);
+    }
+  }, []);
+
+  const handleDeliveryUpdate = useCallback(() => {
+    loadDeliveryOrders();
+    loadDrivers();
+  }, [loadDeliveryOrders, loadDrivers]);
+
+  const handleOrderUpdate = useCallback((message: WebSocketMessage) => {
+    if (message.type === 'ORDER_STATUS_CHANGED' || message.type === 'DELIVERY_ASSIGNED') {
+      loadDeliveryOrders();
+    }
+  }, [loadDeliveryOrders]);
 
   useEffect(() => {
     const setupListeners = () => {
@@ -49,49 +84,23 @@ export default function DeliveriesPage() {
       websocketService.on('/topic/orders', handleOrderUpdate);
     };
 
-    loadDeliveryOrders();
-    loadDrivers();
+    const initializeData = async () => {
+      startLoading();
+      try {
+        await Promise.all([loadDeliveryOrders(), loadDrivers()]);
+      } finally {
+        stopLoading();
+      }
+    };
+
+    initializeData();
     setupListeners();
 
     return () => {
       websocketService.off('/topic/deliveries', handleDeliveryUpdate);
       websocketService.off('/topic/orders', handleOrderUpdate);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const loadDeliveryOrders = async () => {
-    try {
-      const response = await apiService.getDeliveryOrders({ page: 0, size: 100 });
-      const data = response.data.content || [];
-      setOrders(data);
-    } catch (error) {
-      console.error('Failed to load delivery orders:', error);
-      setOrders([]);
-    }
-  };
-
-  const loadDrivers = async () => {
-    try {
-      const response = await apiService.getDeliveryDrivers({ page: 0, size: 100 });
-      const data = response.data.content || [];
-      setDrivers(data);
-    } catch (error) {
-      console.error('Failed to load drivers:', error);
-      setDrivers([]);
-    }
-  };
-
-  const handleDeliveryUpdate = () => {
-    loadDeliveryOrders();
-    loadDrivers();
-  };
-
-  const handleOrderUpdate = (message: WebSocketMessage) => {
-    if (message.type === 'ORDER_STATUS_CHANGED' || message.type === 'DELIVERY_ASSIGNED') {
-      loadDeliveryOrders();
-    }
-  };
+  }, [handleDeliveryUpdate, handleOrderUpdate, loadDeliveryOrders, loadDrivers, startLoading, stopLoading]);
 
   const handleRefresh = async () => {
     setRefreshing(true);

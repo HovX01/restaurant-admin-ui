@@ -54,6 +54,7 @@ import { toast } from 'sonner';
 import { apiService } from '@/services/api.service';
 import { User, UserRole } from '@/types/index';
 import { format } from 'date-fns';
+import { usePageLoading } from '@/contexts/page-loading.context';
 
 interface UserFormData {
   username: string;
@@ -77,18 +78,28 @@ export default function UsersPage() {
     },
   });
 
+  const { startLoading, stopLoading } = usePageLoading();
+
   useEffect(() => {
-    loadUsers();
+    loadUsers(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadUsers = async () => {
+  const loadUsers = async (withLoader = false) => {
     try {
+      if (withLoader) {
+        startLoading();
+      }
       const response = await apiService.getUsers({ page: 0, size: 100 });
       const data = response.data.content;
       setUsers(data);
     } catch (error) {
       console.error('Failed to load users:', error);
       toast.error('Failed to load users');
+    } finally {
+      if (withLoader) {
+        stopLoading();
+      }
     }
   };
 
