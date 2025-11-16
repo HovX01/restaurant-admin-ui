@@ -33,6 +33,13 @@ import { DataTable } from '@/components/ui/data-table';
 import { ColumnDef } from '@tanstack/react-table';
 import { getCustomerName, getTotalPrice, getOrderItems, parseCustomerDetails, getProductNameFromItem } from '@/lib/order-utils';
 import { usePageLoading } from '@/contexts/page-loading.context';
+import { useAuthStore } from '@/store/auth.store';
+import dynamic from 'next/dynamic';
+
+const DeliveryMap = dynamic(
+  () => import('@/components/map/DeliveryMap').then(mod => ({ default: mod.DeliveryMap })),
+  { ssr: false }
+);
 
 export default function DeliveriesPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -44,11 +51,12 @@ export default function DeliveriesPage() {
   const [selectedDriver, setSelectedDriver] = useState<number | null>(null);
   const [notes, setNotes] = useState('');
   const { startLoading, stopLoading } = usePageLoading();
+  const { user } = useAuthStore();
 
   const loadDeliveryOrders = useCallback(async () => {
     try {
       const response = await apiService.getDeliveryOrders({ page: 0, size: 100 });
-      const data = response.data || [];
+      const data = Array.isArray(response.data) ? response.data : (response.data.content || []);
       setOrders(data);
     } catch (error) {
       console.error('Failed to load delivery orders:', error);
@@ -59,7 +67,7 @@ export default function DeliveriesPage() {
   const loadDrivers = useCallback(async () => {
     try {
       const response = await apiService.getDeliveryDrivers({ page: 0, size: 100 });
-      const data = response.data || [];
+      const data = Array.isArray(response.data) ? response.data : (response.data.content || []);
       setDrivers(data);
     } catch (error) {
       console.error('Failed to load drivers:', error);
@@ -111,8 +119,16 @@ export default function DeliveriesPage() {
   const handleAssignDriver = async () => {
     if (!selectedOrder || !selectedDriver) return;
     
+    // Get delivery address from order, fallback to customer address
+    const deliveryAddress = selectedOrder.deliveryAddress || selectedOrder.customerAddress;
+    
+    if (!deliveryAddress) {
+      toast.error('Delivery address is required');
+      return;
+    }
+    
     try {
-      await apiService.assignDeliveryDriver(selectedOrder.id, selectedDriver, notes);
+      await apiService.assignDeliveryDriver(selectedOrder.id, selectedDriver, deliveryAddress, notes);
       toast.success(`Driver assigned to order #${selectedOrder.id}`);
       setIsAssignDialogOpen(false);
       setSelectedOrder(null);
@@ -370,7 +386,9 @@ export default function DeliveriesPage() {
           <Tabs defaultValue="orders" className="w-full">
             <TabsList>
               <TabsTrigger value="orders">Delivery Orders</TabsTrigger>
-              <TabsTrigger value="drivers">Drivers</TabsTrigger>
+              {user?.role !== 'DELIVERY_STAFF' && (
+                <TabsTrigger value="drivers">Drivers</TabsTrigger>
+              )}
               <TabsTrigger value="map">Delivery Map</TabsTrigger>
             </TabsList>
 
@@ -382,54 +400,46 @@ export default function DeliveriesPage() {
               />
             </TabsContent>
 
-            <TabsContent value="drivers" className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {(drivers || []).map((driver) => (
-                  <Card key={driver.id}>
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="flex items-center gap-2">
-                          <User className="h-5 w-5" />
-                          {driver.firstName && driver.lastName ? `${driver.firstName} ${driver.lastName}` : driver.username}
-                        </CardTitle>
-                        <Badge variant={driver.enabled ? 'default' : 'secondary'}>
-                          {driver.enabled ? 'Available' : 'Unavailable'}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Phone className="h-4 w-4 text-muted-foreground" />
-                          {driver.phone}
+            {user?.role !== 'DELIVERY_STAFF' && (
+              <TabsContent value="drivers" className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {(drivers || []).map((driver) => (
+                    <Card key={driver.id}>
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="flex items-center gap-2">
+                            <User className="h-5 w-5" />
+                            {driver.firstName && driver.lastName ? `${driver.firstName} ${driver.lastName}` : driver.username}
+                          </CardTitle>
+                          <Badge variant={driver.enabled ? 'default' : 'secondary'}>
+                            {driver.enabled ? 'Available' : 'Unavailable'}
+                          </Badge>
                         </div>
-                        <div className="flex justify-between text-sm">
-                          <span>Current deliveries:</span>
-                          <span className="font-medium">0</span>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Phone className="h-4 w-4 text-muted-foreground" />
+                            {driver.phone}
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Current deliveries:</span>
+                            <span className="font-medium">0</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Total deliveries:</span>
+                            <span className="font-medium">0</span>
+                          </div>
                         </div>
-                        <div className="flex justify-between text-sm">
-                          <span>Total deliveries:</span>
-                          <span className="font-medium">0</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </TabsContent>
+            )}
 
             <TabsContent value="map" className="space-y-4">
-              <Card className="p-6 text-center">
-                <Navigation className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Delivery Map</h3>
-                <p className="text-muted-foreground mb-4">
-                  Interactive map showing real-time delivery locations would be integrated here.
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  This would typically integrate with services like Google Maps API or Mapbox
-                  to show driver locations and delivery routes.
-                </p>
-              </Card>
+              <DeliveryMap orders={orders} />
             </TabsContent>
           </Tabs>
 

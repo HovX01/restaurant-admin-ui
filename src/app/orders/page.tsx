@@ -63,11 +63,19 @@ import {
   getCustomerName,
   getProductNameFromItem 
 } from '@/lib/order-utils';
+import dynamic from 'next/dynamic';
+
+const MapLocationPicker = dynamic(
+  () => import('@/components/map/MapLocationPicker').then(mod => ({ default: mod.MapLocationPicker })),
+  { ssr: false }
+);
 
 interface OrderFormData {
   customerName: string;
   customerPhone: string;
   customerAddress: string;
+  latitude?: number;
+  longitude?: number;
   notes: string;
   items: Array<{
     productId: number;
@@ -90,6 +98,8 @@ export default function OrdersPage() {
       customerName: '',
       customerPhone: '',
       customerAddress: '',
+      latitude: undefined,
+      longitude: undefined,
       notes: '',
       items: [{ productId: 0, quantity: 1, price: 0 }],
     },
@@ -175,6 +185,8 @@ export default function OrdersPage() {
       customerName: '',
       customerPhone: '',
       customerAddress: '',
+      latitude: undefined,
+      longitude: undefined,
       notes: '',
       items: [{ productId: 0, quantity: 1, price: 0 }],
     });
@@ -407,6 +419,24 @@ export default function OrdersPage() {
                         </FormItem>
                       )}
                     />
+
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-medium">Delivery Location</h3>
+                      <p className="text-sm text-muted-foreground">Click on the map to set delivery location</p>
+                      <MapLocationPicker
+                        latitude={form.watch('latitude')}
+                        longitude={form.watch('longitude')}
+                        onLocationSelect={(lat, lng) => {
+                          form.setValue('latitude', lat);
+                          form.setValue('longitude', lng);
+                        }}
+                      />
+                      {form.watch('latitude') && form.watch('longitude') && (
+                        <p className="text-xs text-muted-foreground">
+                          Selected: {form.watch('latitude')?.toFixed(6)}, {form.watch('longitude')?.toFixed(6)}
+                        </p>
+                      )}
+                    </div>
 
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">

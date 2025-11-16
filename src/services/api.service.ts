@@ -437,8 +437,13 @@ class ApiService {
     return response.data;
   }
 
-  async assignDelivery(orderId: number, driverId: number, notes?: string): Promise<ApiResponse<Delivery>> {
-    const response = await this.api.post<ApiResponse<Delivery>>('/deliveries/assign', { orderId, driverId, notes });
+  async assignDelivery(orderId: number, driverId: number, deliveryAddress: string, notes?: string): Promise<ApiResponse<Delivery>> {
+    const response = await this.api.post<ApiResponse<Delivery>>('/deliveries/assign', { 
+      orderId, 
+      driverId, 
+      deliveryAddress, 
+      deliveryNotes: notes 
+    });
     toast.success('Delivery assigned successfully');
     return response.data;
   }
@@ -533,9 +538,11 @@ class ApiService {
     return response.data;
   }
 
-  async assignDeliveryDriver(orderId: number, driverId: number, notes?: string): Promise<ApiResponse<Order>> {
+  async assignDeliveryDriver(orderId: number, driverId: number, deliveryAddress: string, notes?: string): Promise<ApiResponse<Order>> {
     const response = await this.api.post<ApiResponse<Order>>(`/orders/${orderId}/assign-driver`, {
+      orderId,
       driverId,
+      deliveryAddress,
       notes
     });
     toast.success('Driver assigned successfully');

@@ -100,6 +100,8 @@ export interface Order {
   customerAddress?: string;
   customerDetails?: string;
   deliveryAddress?: string;
+  latitude?: number;
+  longitude?: number;
   assignedDriverId?: number;
   assignedDriver?: User;
   assignedDriverName?: string;
