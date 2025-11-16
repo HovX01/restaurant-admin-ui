@@ -91,21 +91,17 @@ export default function ProductsPage() {
     },
   });
 
-  const filterProducts = () => {
-    if (selectedCategoryFilter) {
-      setFilteredProducts(products.filter(p => p.categoryId === selectedCategoryFilter));
-    } else {
-      setFilteredProducts(products);
-    }
-  };
-
   useEffect(() => {
     loadData();
   }, []);
 
   useEffect(() => {
-    filterProducts();
-  }, [products, selectedCategoryFilter, filterProducts]);
+    if (selectedCategoryFilter !== null) {
+      setFilteredProducts(products.filter(p => p.categoryId === selectedCategoryFilter));
+    } else {
+      setFilteredProducts(products);
+    }
+  }, [products, selectedCategoryFilter]);
 
   const loadData = async () => {
     try {
@@ -192,7 +188,7 @@ export default function ProductsPage() {
       accessorKey: 'category.name',
       header: 'Category',
       cell: ({ getValue }) => {
-        const value = getValue<String>();
+        const value = getValue<string>();
         return (
           <Badge variant="outline">
             { value }

@@ -55,7 +55,6 @@ interface CategoryFormData {
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -73,14 +72,11 @@ export default function CategoriesPage() {
 
   const loadCategories = async () => {
     try {
-      setLoading(true);
       const response = await apiService.getCategories({ page: 0, size: 100 });
       const data = response.data.content;
       setCategories(data);
     } catch (error) {
       console.error('Failed to load categories:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
