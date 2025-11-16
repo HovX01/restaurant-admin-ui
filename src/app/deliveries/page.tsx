@@ -62,34 +62,6 @@ export default function DeliveriesPage() {
 
   const loadDeliveryOrders = async () => {
     try {
-      const statuses: OrderStatus[] = ['READY_FOR_DELIVERY', 'OUT_FOR_DELIVERY', 'COMPLETED'];
-      let statusRequestsSucceeded = false;
-
-      const statusResponses = await Promise.all(
-        statuses.map(async (status) => {
-          try {
-            const response = await apiService.getDeliveryOrdersByStatus(status, { page: 0, size: 100 });
-            statusRequestsSucceeded = true;
-            return response.data.content || [];
-          } catch (statusError) {
-            console.warn(`Failed to load delivery orders for status ${status}:`, statusError);
-            return [];
-          }
-        })
-      );
-
-      if (statusRequestsSucceeded) {
-        const combinedOrders = statusResponses.flat();
-        const uniqueOrders = Array.from(new Map(combinedOrders.map((order) => [order.id, order])).values());
-        uniqueOrders.sort((a, b) => {
-          const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-          return bTime - aTime;
-        });
-        setOrders(uniqueOrders);
-        return;
-      }
-
       const response = await apiService.getDeliveryOrders({ page: 0, size: 100 });
       const data = response.data.content || [];
       setOrders(data);
