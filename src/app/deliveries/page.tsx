@@ -17,7 +17,6 @@ import {
   Clock, 
   CheckCircle, 
   Package,
-  Navigation,
   Phone,
   User,
   RefreshCw,
@@ -43,6 +42,7 @@ const DeliveryMap = dynamic(
 
 export default function DeliveriesPage() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [drivers, setDrivers] = useState<UserType[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -64,6 +64,17 @@ export default function DeliveriesPage() {
     }
   }, []);
 
+  const loadAllOrders = useCallback(async () => {
+    try {
+      const response = await apiService.getOrders({ page: 0, size: 500 });
+      const data = Array.isArray(response.data) ? response.data : (response.data.content || []);
+      setAllOrders(data);
+    } catch (error) {
+      console.error('Failed to load all orders:', error);
+      setAllOrders([]);
+    }
+  }, []);
+
   const loadDrivers = useCallback(async () => {
     try {
       const response = await apiService.getDeliveryDrivers({ page: 0, size: 100 });
@@ -77,14 +88,16 @@ export default function DeliveriesPage() {
 
   const handleDeliveryUpdate = useCallback(() => {
     loadDeliveryOrders();
+    loadAllOrders();
     loadDrivers();
-  }, [loadDeliveryOrders, loadDrivers]);
+  }, [loadDeliveryOrders, loadAllOrders, loadDrivers]);
 
   const handleOrderUpdate = useCallback((message: WebSocketMessage) => {
     if (message.type === 'ORDER_STATUS_CHANGED' || message.type === 'DELIVERY_ASSIGNED') {
       loadDeliveryOrders();
+      loadAllOrders();
     }
-  }, [loadDeliveryOrders]);
+  }, [loadDeliveryOrders, loadAllOrders]);
 
   useEffect(() => {
     const setupListeners = () => {
@@ -95,7 +108,7 @@ export default function DeliveriesPage() {
     const initializeData = async () => {
       startLoading();
       try {
-        await Promise.all([loadDeliveryOrders(), loadDrivers()]);
+        await Promise.all([loadDeliveryOrders(), loadAllOrders(), loadDrivers()]);
       } finally {
         stopLoading();
       }
@@ -108,11 +121,11 @@ export default function DeliveriesPage() {
       websocketService.off('/topic/deliveries', handleDeliveryUpdate);
       websocketService.off('/topic/orders', handleOrderUpdate);
     };
-  }, [handleDeliveryUpdate, handleOrderUpdate, loadDeliveryOrders, loadDrivers, startLoading, stopLoading]);
+  }, [handleDeliveryUpdate, handleOrderUpdate, loadDeliveryOrders, loadAllOrders, loadDrivers, startLoading, stopLoading]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([loadDeliveryOrders(), loadDrivers()]);
+    await Promise.all([loadDeliveryOrders(), loadAllOrders(), loadDrivers()]);
     setRefreshing(false);
   };
 
@@ -135,6 +148,7 @@ export default function DeliveriesPage() {
       setSelectedDriver(null);
       setNotes('');
       await loadDeliveryOrders();
+      await loadAllOrders();
       await loadDrivers();
     } catch (error) {
       console.error('Failed to assign driver:', error);
@@ -147,6 +161,7 @@ export default function DeliveriesPage() {
       await apiService.updateOrderStatus(orderId, status);
       toast.success(`Order #${orderId} status updated to ${status.replace('_', ' ')}`);
       await loadDeliveryOrders();
+      await loadAllOrders();
     } catch (error) {
       console.error('Failed to update order status:', error);
       toast.error('Failed to update order status');
@@ -383,13 +398,15 @@ export default function DeliveriesPage() {
           </div>
 
           {/* Tabs for different views */}
-          <Tabs defaultValue="orders" className="w-full">
+          <Tabs defaultValue={user?.role === 'DELIVERY_STAFF' ? 'map' : 'orders'} className="w-full">
             <TabsList>
               <TabsTrigger value="orders">Delivery Orders</TabsTrigger>
               {user?.role !== 'DELIVERY_STAFF' && (
                 <TabsTrigger value="drivers">Drivers</TabsTrigger>
               )}
-              <TabsTrigger value="map">Delivery Map</TabsTrigger>
+              {user?.role === 'DELIVERY_STAFF' && (
+                <TabsTrigger value="map">Delivery Map</TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="orders" className="space-y-4">
@@ -438,9 +455,11 @@ export default function DeliveriesPage() {
               </TabsContent>
             )}
 
-            <TabsContent value="map" className="space-y-4">
-              <DeliveryMap orders={orders} />
-            </TabsContent>
+            {user?.role === 'DELIVERY_STAFF' && (
+              <TabsContent value="map" className="space-y-4">
+                <DeliveryMap orders={allOrders} />
+              </TabsContent>
+            )}
           </Tabs>
 
           {/* Assign Driver Dialog */}

@@ -109,10 +109,17 @@ export function DeliveryMap({ orders }: DeliveryMapProps) {
     setIsMounted(true);
   }, []);
 
-  // Filter orders that have location data
-  const ordersWithLocation = orders.filter(
-    order => order.latitude && order.longitude
-  );
+  // Filter orders that have location data (check both order and delivery objects)
+  // and are not completed or cancelled
+  const ordersWithLocation = orders.filter(order => {
+    const hasOrderLocation = order.latitude && order.longitude;
+    const hasDeliveryLocation = order.delivery?.latitude && order.delivery?.longitude;
+    const hasLocation = hasOrderLocation || hasDeliveryLocation;
+    
+    const isNotCompleted = order.status !== 'COMPLETED' && order.status !== 'CANCELLED';
+    
+    return hasLocation && isNotCompleted;
+  });
 
   if (!isMounted) {
     return (
@@ -151,10 +158,14 @@ export function DeliveryMap({ orders }: DeliveryMapProps) {
           const address = order.deliveryAddress || order.customerAddress || customerInfo.address;
           const total = getTotalPrice(order);
           
+          // Get coordinates from delivery object if available, otherwise from order
+          const latitude = order.delivery?.latitude || order.latitude;
+          const longitude = order.delivery?.longitude || order.longitude;
+          
           return (
             <Marker
               key={order.id}
-              position={[order.latitude!, order.longitude!]}
+              position={[latitude!, longitude!]}
               icon={getMarkerIcon(order.status)}
             >
               <Popup>

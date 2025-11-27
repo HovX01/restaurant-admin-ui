@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import dynamic from 'next/dynamic';
+import 'leaflet/dist/leaflet.css';
 
 // Dynamically import leaflet and react-leaflet to avoid SSR issues
 let L: any;
@@ -17,8 +17,6 @@ if (typeof window !== 'undefined') {
   TileLayer = ReactLeaflet.TileLayer;
   Marker = ReactLeaflet.Marker;
   useMapEvents = ReactLeaflet.useMapEvents;
-  
-  require('leaflet/dist/leaflet.css');
 
   // Fix for default marker icon in Next.js
   const defaultIcon = L.icon({

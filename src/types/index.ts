@@ -133,9 +133,13 @@ export interface Delivery {
   assignedAt?: string;
   pickedUpAt?: string;
   deliveredAt?: string;
+  deliveryAddress?: string;
+  deliveryNotes?: string;
   notes?: string;
   estimatedDeliveryTime?: string;
   actualDeliveryTime?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface DeliveryDriver {
